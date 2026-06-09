@@ -1,0 +1,18 @@
+.transient-menu-portal {
+  position: fixed;
+  z-index: 200;
+  pointer-events: auto;
+}
+
+.transient-submenu-portal {
+  z-index: 201;
+}
+
+.transient-submenu-portal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 16px;
+}

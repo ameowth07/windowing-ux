@@ -1,0 +1,180 @@
+.floating-window {
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  min-width: 288px;
+  min-height: 200px;
+  border: 1px solid var(--stroke-emphasis);
+  border-radius: var(--aux-window-radius);
+  box-shadow: var(--shadow-transient-low);
+  overflow: hidden;
+}
+
+.floating-window--merge-target {
+  border-color: var(--drop-zone-stroke);
+  box-shadow:
+    0 0 0 1px var(--drop-zone-stroke-glow),
+    var(--shadow-transient-low);
+}
+
+.floating-window--drop-blocked {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.floating-window--drop-blocked .floating-window__app-bar {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.floating-window__app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--aux-title-bar-height);
+  min-height: var(--aux-title-bar-height);
+  background: var(--bg-surface-0);
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.floating-window__app-bar:active {
+  cursor: grabbing;
+}
+
+.floating-window__title {
+  padding: 0 8px 0 12px;
+  font: var(--font-title-small);
+  color: var(--content-default);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floating-window__window-controls {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.floating-window__window-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: var(--aux-title-bar-height);
+  color: var(--content-default);
+}
+
+.floating-window__window-btn:hover {
+  background: var(--bg-shift-200);
+}
+
+.floating-window__window-btn--close:hover {
+  background: #e81123;
+  color: white;
+}
+
+.floating-window__panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-surface-0);
+  box-shadow: var(--shadow-window);
+}
+
+.floating-window__tab-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--panel-tab-bar-height);
+  min-height: var(--panel-tab-bar-height);
+  background: var(--bg-surface-300);
+  border-bottom: 1px solid var(--stroke-muted);
+  flex-shrink: 0;
+}
+
+.floating-window__tab-bar--dragging-source {
+  opacity: 0.5;
+}
+
+.floating-window__tab-bar--dragging-source-hidden {
+  visibility: hidden;
+}
+
+.floating-window__tabs-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 0;
+  overflow: hidden;
+  left: 0;
+  top: 0;
+}
+
+.floating-window__tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 8px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.floating-window__actions {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+.floating-window__menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-small);
+  color: var(--content-default);
+}
+
+.floating-window__menu-btn:hover,
+.floating-window__menu-btn--open {
+  background: var(--bg-shift-200);
+}
+
+.floating-window__expand-tab-bar {
+  flex-shrink: 0;
+  width: 100%;
+  height: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.floating-window__expand-tab-bar:hover {
+  background: var(--highlight-200);
+}
+
+.floating-window__tab-divider {
+  display: none;
+}
+
+.floating-window__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}

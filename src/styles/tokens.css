@@ -1,0 +1,60 @@
+:root {
+  --win-taskbar-height: 48px;
+  --bg-surface-0: #121215;
+  --bg-surface-100: #191a1f;
+  --bg-surface-200: #202227;
+  --bg-surface-300: #272930;
+  --bg-shift-200: rgba(208, 217, 251, 0.08);
+  --bg-shift-300: rgba(208, 217, 251, 0.12);
+  --content-emphasis: #f7f7f8;
+  --content-default: #d5d7dd;
+  --content-muted: #939598;
+  --action-soft-foreground: #ebf1ff;
+  --stroke-default: rgba(208, 217, 251, 0.12);
+  --stroke-emphasis: rgba(208, 217, 251, 0.16);
+  --accent-play: #007aff;
+  --accent-highlight: #b682f7;
+  --highlight-200: rgba(101, 123, 244, 0.2);
+  --drop-zone-fill: rgba(101, 123, 244, 0.2);
+  --drop-zone-fill-subtle: rgba(101, 123, 244, 0.06);
+  --drop-zone-fill-hover: rgba(101, 123, 244, 0.16);
+  --drop-zone-stroke: #335fff;
+  --resize-stroke: var(--drop-zone-stroke);
+  --drop-zone-edge-size: 4px;
+  --drop-zone-stroke-muted: rgba(51, 95, 255, 0.55);
+  --drop-zone-stroke-glow: rgba(51, 95, 255, 0.45);
+  --drop-zone-stroke-debug: rgba(51, 95, 255, 0.7);
+  --radius-small: 4px;
+  --radius-medium: 8px;
+  --radius-device: 12px;
+  --app-bar-height: 40px;
+  --footer-height: 40px;
+  --panel-tab-bar-height: 40px;
+  --pane-gutter-size: 4px;
+  --pane-gutter-gap: 2px;
+  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-label: 600 12px/12px var(--font-family);
+  --font-body: 400 14px/20px var(--font-family);
+  --font-title: 700 14px/20px var(--font-family);
+  --font-title-small: 700 12px/18px var(--font-family);
+  --font-menu-item: 400 12px/1.4 var(--font-family);
+  --menu-width: 260px;
+  --menu-padding: 9px;
+  --menu-item-gap: 2px;
+  --menu-item-gap-inline: 12px;
+  --menu-item-height: 25px;
+  --menu-item-padding-x: 12px;
+  --menu-item-padding-y: 4px;
+  --stroke-muted: rgba(208, 217, 251, 0.08);
+  --aux-window-radius: 8px;
+  --aux-title-bar-height: 32px;
+  --shadow-window: 0 0 0 1px var(--stroke-emphasis), 0 32px 64px rgba(0, 0, 0, 0.24);
+  --shadow-transient-low:
+    0 2px 2px -0.5px rgba(4, 4, 8, 0.25),
+    0 10px 10px -0.75px rgba(4, 4, 8, 0.25);
+  --shadow-transient-high:
+    0 2px 2px -0.5px rgba(4, 4, 8, 0.25),
+    0 10px 10px -0.75px rgba(4, 4, 8, 0.25),
+    0 16px 16px -1px rgba(4, 4, 8, 0.25),
+    0 48px 56px -1.5px rgba(4, 4, 8, 0.25);
+}

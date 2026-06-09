@@ -1,0 +1,29 @@
+.split-node {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.split-node--horizontal {
+  flex-direction: row;
+}
+
+.split-node--vertical {
+  flex-direction: column;
+}
+
+.split-node--dragging {
+  user-select: none;
+}
+
+.split-node__pane {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.split-node--dragging .split-node__pane {
+  pointer-events: none;
+}

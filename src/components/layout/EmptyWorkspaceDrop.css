@@ -1,0 +1,34 @@
+.empty-workspace-drop {
+  position: absolute;
+  inset: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--stroke-emphasis);
+  border-radius: var(--radius-small);
+  color: var(--content-muted);
+  font-size: 13px;
+  background: var(--drop-zone-fill-subtle);
+  z-index: 5;
+}
+
+.empty-workspace-drop--active {
+  border-color: var(--drop-zone-stroke);
+  background: var(--drop-zone-fill-hover);
+  color: var(--content-emphasis);
+}
+
+.empty-workspace-drop--zones {
+  inset: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  display: block;
+}
+
+.empty-workspace-drop--debug {
+  border: 1px solid var(--drop-zone-stroke);
+  background: var(--drop-zone-fill);
+  box-shadow: inset 0 0 0 1px var(--drop-zone-stroke);
+  pointer-events: none;
+}

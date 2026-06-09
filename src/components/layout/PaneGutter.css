@@ -1,0 +1,44 @@
+.pane-gutter {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--pane-gutter-gap);
+  background: var(--bg-surface-0);
+}
+
+.pane-gutter--vertical {
+  width: var(--pane-gutter-size);
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.pane-gutter--horizontal {
+  height: var(--pane-gutter-size);
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pane-gutter__line {
+  flex: 1;
+  background: var(--stroke-default);
+  min-width: 1px;
+  min-height: 1px;
+  transition: background 0.12s;
+}
+
+.pane-gutter--resizable {
+  position: relative;
+  z-index: 6;
+}
+
+.pane-gutter--resizable.pane-gutter--vertical {
+  cursor: col-resize;
+}
+
+.pane-gutter--resizable.pane-gutter--horizontal {
+  cursor: row-resize;
+}
+
+.pane-gutter--resizable:hover .pane-gutter__line,
+.pane-gutter--active .pane-gutter__line {
+  background: var(--resize-stroke);
+}

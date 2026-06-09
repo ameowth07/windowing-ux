@@ -1,0 +1,195 @@
+.desktop {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+.desktop__wallpaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(0, 120, 212, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 20% 80%, rgba(181, 130, 247, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 75%, rgba(0, 180, 160, 0.25) 0%, transparent 50%),
+    linear-gradient(135deg, #0c1929 0%, #1b2a4a 35%, #2d1b4e 70%, #0f1729 100%);
+}
+
+.desktop__wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.desktop__icons {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1;
+}
+
+.desktop-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 80px;
+  padding: 8px 4px;
+  border-radius: 4px;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.desktop-icon:hover,
+.desktop-icon--selected {
+  background: rgba(255, 255, 255, 0.12);
+  outline: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.desktop-icon__glyph {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.desktop-icon__glyph--recycle {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Cpath d='M18 8h12l2 4h8v4H8v-4h8l2-4z' fill='%23e5e7eb'/%3E%3Cpath d='M14 20h20l-2 20H16L14 20z' fill='%239ca3af'/%3E%3Cpath d='M22 24v12M26 24v12' stroke='%236b7280' stroke-width='2'/%3E%3C/svg%3E");
+}
+
+.desktop-icon__glyph--studio {
+  background: linear-gradient(145deg, #272930, #191a1f);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.desktop-icon__label {
+  font: 400 11px/14px 'Segoe UI', system-ui, sans-serif;
+  text-align: center;
+  word-break: break-word;
+}
+
+.desktop__windows {
+  position: absolute;
+  inset: 8px;
+  bottom: calc(var(--win-taskbar-height) + 8px);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.desktop__windows > .primary-window-stack .resizable-app-window,
+.desktop__windows > .primary-window-stack .floating-layer > * {
+  pointer-events: auto;
+}
+
+.desktop__windows > .primary-window-ghost {
+  pointer-events: none;
+}
+
+.win-taskbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--win-taskbar-height);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: rgba(32, 32, 32, 0.85);
+  backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
+}
+
+.win-taskbar__start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  color: white;
+}
+
+.win-taskbar__start:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.win-taskbar__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+  font: 400 13px/16px 'Segoe UI', system-ui, sans-serif;
+  min-width: 220px;
+}
+
+.win-taskbar__search:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.win-taskbar__pinned {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.win-taskbar__app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  color: white;
+}
+
+.win-taskbar__app:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.win-taskbar__app--active {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 -2px 0 #0078d4;
+}
+
+.win-taskbar__tray {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.win-taskbar__tray-icon {
+  font: 400 11px/14px 'Segoe UI', system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.win-taskbar__clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font: 400 11px/14px 'Segoe UI', system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.win-taskbar__clock:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

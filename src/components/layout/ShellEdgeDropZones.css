@@ -1,0 +1,98 @@
+.shell-edge-zones {
+  --shell-edge-zone-side-size: 24px;
+  --shell-edge-zone-end-size: calc(20px + var(--pane-gutter-size));
+
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.shell-edge-zone {
+  position: absolute;
+  pointer-events: auto;
+  background: transparent;
+}
+
+/* Side hit targets: full-height strips between top/bottom bands. */
+.shell-edge-zone--left {
+  top: var(--shell-edge-zone-end-size);
+  bottom: var(--shell-edge-zone-end-size);
+  left: 0;
+  width: var(--shell-edge-zone-side-size);
+  z-index: 2;
+}
+
+.shell-edge-zone--right {
+  top: var(--shell-edge-zone-end-size);
+  bottom: var(--shell-edge-zone-end-size);
+  right: 0;
+  width: var(--shell-edge-zone-side-size);
+  z-index: 2;
+}
+
+/* Top/bottom hit targets: inset so they do not cover the side strips. */
+.shell-edge-zone--top {
+  top: 0;
+  left: var(--shell-edge-zone-side-size);
+  right: var(--shell-edge-zone-side-size);
+  height: var(--shell-edge-zone-end-size);
+  z-index: 1;
+}
+
+.shell-edge-zone--bottom {
+  bottom: 0;
+  left: var(--shell-edge-zone-side-size);
+  right: var(--shell-edge-zone-side-size);
+  height: var(--shell-edge-zone-end-size);
+  z-index: 1;
+}
+
+.shell-edge-zone--left::after,
+.shell-edge-zone--right::after,
+.shell-edge-zone--top::after,
+.shell-edge-zone--bottom::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  background: var(--drop-zone-stroke);
+}
+
+.shell-edge-zone--left::after {
+  top: calc(-1 * var(--shell-edge-zone-end-size));
+  bottom: calc(-1 * var(--shell-edge-zone-end-size));
+  left: 0;
+  width: var(--drop-zone-edge-size);
+}
+
+.shell-edge-zone--right::after {
+  top: calc(-1 * var(--shell-edge-zone-end-size));
+  bottom: calc(-1 * var(--shell-edge-zone-end-size));
+  right: 0;
+  width: var(--drop-zone-edge-size);
+}
+
+.shell-edge-zone--top::after {
+  left: calc(-1 * var(--shell-edge-zone-side-size));
+  right: calc(-1 * var(--shell-edge-zone-side-size));
+  top: 0;
+  height: var(--drop-zone-edge-size);
+}
+
+.shell-edge-zone--bottom::after {
+  left: calc(-1 * var(--shell-edge-zone-side-size));
+  right: calc(-1 * var(--shell-edge-zone-side-size));
+  bottom: 0;
+  height: var(--drop-zone-edge-size);
+}
+
+.shell-edge-zone--active::after,
+.shell-edge-zones--debug .shell-edge-zone::after {
+  opacity: 1;
+}
+
+.shell-edge-zones--debug .shell-edge-zone {
+  pointer-events: none;
+}

@@ -1,0 +1,27 @@
+.zone-variant-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-small);
+  background: var(--bg-shift-200);
+}
+
+.zone-variant-toggle__btn {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 3px;
+  font: 600 11px/1 var(--font-family);
+  color: var(--content-muted);
+  white-space: nowrap;
+}
+
+.zone-variant-toggle__btn:hover {
+  color: var(--content-default);
+}
+
+.zone-variant-toggle__btn--active {
+  background: var(--bg-surface-300);
+  color: var(--content-emphasis);
+  box-shadow: 0 0 0 1px var(--stroke-default);
+}

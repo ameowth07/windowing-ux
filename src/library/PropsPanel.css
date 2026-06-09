@@ -1,0 +1,120 @@
+.props-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--stroke-default);
+  border-radius: var(--radius-small);
+  background: var(--bg-surface-100);
+}
+
+.props-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.props-panel__title {
+  margin: 0;
+  font: var(--font-title);
+  color: var(--content-emphasis);
+}
+
+.props-panel__reset {
+  padding: 4px 10px;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--stroke-default);
+  background: var(--bg-surface-200);
+  color: var(--content-default);
+  font-size: 12px;
+}
+
+.props-panel__reset:hover {
+  background: var(--bg-shift-200);
+}
+
+.props-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.props-panel__section-title {
+  margin: 0;
+  font: 600 11px/16px var(--font-family);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--content-muted);
+}
+
+.props-panel__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--content-muted);
+}
+
+.props-panel__variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.props-panel__variant-btn {
+  padding: 6px 10px;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--stroke-default);
+  background: var(--bg-surface-200);
+  color: var(--content-default);
+  font-size: 12px;
+}
+
+.props-panel__variant-btn:hover {
+  border-color: var(--accent-highlight);
+  color: var(--content-emphasis);
+}
+
+.props-panel__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.props-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.props-panel__label {
+  color: var(--content-muted);
+}
+
+.props-panel__field input[type='text'],
+.props-panel__field input[type='number'],
+.props-panel__field select {
+  padding: 6px 8px;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--stroke-default);
+  background: var(--bg-surface-200);
+  color: var(--content-default);
+}
+
+.props-panel__field input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-play);
+}
+
+.props-panel__json {
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--radius-small);
+  background: var(--bg-surface-0);
+  border: 1px solid var(--stroke-default);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--content-default);
+  overflow: auto;
+}

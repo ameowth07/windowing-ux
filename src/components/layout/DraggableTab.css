@@ -1,0 +1,39 @@
+.draggable-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--radius-small);
+  font: var(--font-label);
+  color: var(--content-emphasis);
+  white-space: nowrap;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.draggable-tab--active {
+  background: var(--bg-shift-300);
+}
+
+.draggable-tab:not(.draggable-tab--active):hover {
+  background: var(--bg-shift-200);
+}
+
+.draggable-tab--dragging {
+  opacity: 0.4;
+}
+
+.draggable-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.draggable-tab svg {
+  flex-shrink: 0;
+  color: var(--accent-play);
+}

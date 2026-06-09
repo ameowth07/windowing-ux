@@ -1,0 +1,11 @@
+.panel-tab-bar-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.panel-container__menu-btn--open,
+.floating-window__menu-btn--open {
+  background: var(--bg-shift-200);
+}

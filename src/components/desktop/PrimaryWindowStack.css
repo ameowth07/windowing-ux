@@ -1,0 +1,26 @@
+.primary-window-stack {
+  position: absolute;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.primary-window-stack .drag-drop-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.primary-window-stack .resizable-app-window {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-surface-100);
+  z-index: 1;
+}
+
+.primary-window-stack .floating-layer {
+  z-index: 2;
+}

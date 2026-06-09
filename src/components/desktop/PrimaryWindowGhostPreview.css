@@ -1,0 +1,97 @@
+.primary-window-ghost {
+  position: absolute;
+  z-index: 20000;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--stroke-emphasis);
+  border-radius: var(--radius-device);
+  box-shadow: var(--shadow-window);
+  overflow: hidden;
+  opacity: 0.72;
+  pointer-events: none;
+  background: var(--bg-surface-100);
+}
+
+.primary-window-ghost--fixed {
+  position: fixed;
+}
+
+.primary-window-ghost__app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--app-bar-height);
+  min-height: var(--app-bar-height);
+  background: rgba(18, 18, 21, 0.9);
+  flex-shrink: 0;
+}
+
+.primary-window-ghost__left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 8px 0 4px;
+}
+
+.primary-window-ghost__menu {
+  width: 40px;
+  height: 24px;
+  margin: 0 8px 0 12px;
+  border-radius: var(--radius-small);
+  background: var(--bg-shift-200);
+  flex-shrink: 0;
+}
+
+.primary-window-ghost__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 110px;
+  height: var(--app-bar-height);
+  padding: 0 8px;
+  box-sizing: border-box;
+  color: var(--content-emphasis);
+  font: var(--font-label);
+  background: var(--bg-surface-300);
+  flex-shrink: 0;
+}
+
+.primary-window-ghost__tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--content-emphasis);
+}
+
+.primary-window-ghost__tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.primary-window-ghost__window-controls {
+  width: 138px;
+  height: var(--app-bar-height);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.primary-window-ghost__gutter {
+  height: var(--pane-gutter-size);
+  background: var(--bg-surface-0);
+  flex-shrink: 0;
+}
+
+.primary-window-ghost__workspace {
+  flex: 1;
+  min-height: 0;
+  background: rgba(25, 26, 31, 0.75);
+}
+
+.primary-window-ghost__footer {
+  height: var(--footer-height);
+  min-height: var(--footer-height);
+  background: rgba(18, 18, 21, 0.88);
+  border-top: 1px solid var(--stroke-muted);
+  flex-shrink: 0;
+}

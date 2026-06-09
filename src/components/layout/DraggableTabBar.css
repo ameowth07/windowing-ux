@@ -1,0 +1,11 @@
+.tab-group-drag-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tab-group-drag-layer:active {
+  cursor: grabbing;
+}

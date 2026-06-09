@@ -1,0 +1,114 @@
+.panel-container--drop-blocked {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.panel-container--drop-blocked .panel-container__tab-bar,
+.panel-container--drop-blocked .panel-container__body {
+  pointer-events: none;
+}
+
+.panel-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-surface-0);
+  overflow: hidden;
+}
+
+.panel-container__tab-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--panel-tab-bar-height);
+  min-height: var(--panel-tab-bar-height);
+  background: var(--bg-surface-300);
+  flex-shrink: 0;
+  gap: 0;
+}
+
+.panel-container__tab-bar--dragging-source {
+  opacity: 0.5;
+}
+
+.panel-container__tab-bar--dragging-source-hidden {
+  visibility: hidden;
+}
+
+.panel-container__tabs-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 0;
+  overflow: hidden;
+  left: 0;
+  top: 0;
+}
+
+.panel-container__tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 8px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.panel-container__actions {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+.panel-container__menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-small);
+  color: var(--content-default);
+}
+
+.panel-container__menu-btn:hover {
+  background: var(--bg-shift-200);
+}
+
+.panel-container__divider {
+  height: 1px;
+  background: var(--stroke-default);
+  flex-shrink: 0;
+}
+
+.panel-container__expand-tab-bar {
+  flex-shrink: 0;
+  width: 100%;
+  height: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.panel-container__expand-tab-bar:hover {
+  background: var(--highlight-200);
+}
+
+.panel-container__body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}

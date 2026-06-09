@@ -1,0 +1,22 @@
+.tab-bar-overflow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.tab-bar-overflow__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-small);
+  color: var(--content-default);
+}
+
+.tab-bar-overflow__btn:hover,
+.tab-bar-overflow__btn--open {
+  background: var(--bg-shift-200);
+}

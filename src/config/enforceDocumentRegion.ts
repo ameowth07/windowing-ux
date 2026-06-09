@@ -1,0 +1,1 @@
+export const DEFAULT_ENFORCE_DOCUMENT_REGION_ENABLED = false;
