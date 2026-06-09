@@ -1,5 +1,5 @@
 import type { AuxiliaryWindowSize } from '../../config/auxiliaryWindowSizes';
-import { getFloatingPosition } from '../../context/FloatingContainerContext';
+import { resolveFloatingPlacement } from '../../context/FloatingContainerContext';
 import { isFloatingWindowId } from '../../model/layoutOperations';
 import type {
   DragPanelData,
@@ -21,6 +21,7 @@ export type FloatDragPreview =
       y: number;
       width: number;
       height: number;
+      monitorIndex: number;
     }
   | {
       kind: 'merge';
@@ -35,10 +36,10 @@ interface ResolveFloatDropPreviewInput {
   overData: unknown;
   pointer: { x: number; y: number };
   workspaceRect: DOMRect | null;
-  floatingContainer: HTMLElement | null;
   floatingWindows: FloatingWindow[];
   getIdealSize: (panelId: PanelId) => AuxiliaryWindowSize;
   enforceDocumentRegion?: boolean;
+  monitorCount?: number;
 }
 
 function isDropTarget(data: unknown): data is DropTargetData {
@@ -83,10 +84,10 @@ export function resolveFloatDropPreview({
   overData,
   pointer,
   workspaceRect,
-  floatingContainer,
   floatingWindows,
   getIdealSize,
   enforceDocumentRegion = false,
+  monitorCount = 1,
 }: ResolveFloatDropPreviewInput): FloatDragPreview | null {
   const { panelIds, activeTabId } = getGroupFromDragData(dragData);
 
@@ -147,12 +148,12 @@ export function resolveFloatDropPreview({
   const idealSize = getIdealSize(activeTabId);
   const width = existing?.width ?? idealSize.width;
   const height = existing?.height ?? idealSize.height;
-  const { x, y } = getFloatingPosition(
-    floatingContainer,
+  const { x, y, monitorIndex } = resolveFloatingPlacement(
     pointer.x,
     pointer.y,
     width,
     height,
+    monitorCount,
   );
 
   return {
@@ -164,6 +165,7 @@ export function resolveFloatDropPreview({
     y,
     width,
     height,
+    monitorIndex,
   };
 }
 

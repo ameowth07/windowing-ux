@@ -65,7 +65,8 @@ export function TabBarOverflowMenu({
                 key={panelId}
                 type="button"
                 role="menuitem"
-                className={`studio-menu__item ${active ? 'studio-menu__item--selected' : ''}`}
+                className="studio-menu__item"
+                aria-current={active ? 'true' : undefined}
                 onClick={() => {
                   onSelect(panelId);
                   setOpen(false);

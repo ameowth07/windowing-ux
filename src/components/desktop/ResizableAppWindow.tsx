@@ -9,7 +9,10 @@ import {
   type WindowSizePreset,
 } from '../../config/windowSizes';
 import { useAppWindow } from '../../context/AppWindowContext';
+import { useMonitorLayout } from '../../context/MonitorLayoutContext';
 import { usePrimaryWindows } from '../../context/PrimaryWindowsContext';
+import { clampPrimaryWindowBounds } from '../../utils/primaryWindowPosition';
+import { getWindowContainerSize } from '../../utils/monitorSpace';
 import './ResizableAppWindow.css';
 
 const MIN_WIDTH = 800;
@@ -18,6 +21,7 @@ const MIN_HEIGHT = 500;
 type ResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
 interface WindowBounds {
+  monitorIndex: number;
   x: number;
   y: number;
   width: number;
@@ -26,71 +30,51 @@ interface WindowBounds {
 
 interface ResizableAppWindowProps {
   windowId: string;
+  disabled?: boolean;
   children:
     | ReactNode
     | ((startWindowDrag: (event: React.MouseEvent) => void) => ReactNode);
 }
 
-function getDesktopContainerSize(
-  element: HTMLElement | null,
-): { width: number; height: number } {
-  const desktop = element?.closest('.desktop__windows');
-  if (desktop instanceof HTMLElement) {
-    return { width: desktop.clientWidth, height: desktop.clientHeight };
-  }
-
-  return { width: window.innerWidth, height: window.innerHeight };
-}
-
-function clampBounds(
-  bounds: WindowBounds,
-  container: { width: number; height: number },
-): WindowBounds {
-  const maxWidth = container.width;
-  const maxHeight = container.height;
-  const width = Math.min(Math.max(bounds.width, MIN_WIDTH), maxWidth);
-  const height = Math.min(Math.max(bounds.height, MIN_HEIGHT), maxHeight);
-  const x = Math.min(Math.max(bounds.x, 0), Math.max(0, container.width - width));
-  const y = Math.min(Math.max(bounds.y, 0), Math.max(0, container.height - height));
-
-  return { x, y, width, height };
-}
-
 function getBoundsForPreset(
   preset: WindowSizePreset,
-  container: { width: number; height: number },
+  monitorIndex: number,
+  monitorCount: number,
 ): WindowBounds {
+  const container = getWindowContainerSize(monitorIndex, monitorCount);
   const target = WINDOW_SIZE_PRESETS[preset];
   const width = Math.min(target.width, container.width);
   const height = Math.min(target.height, container.height);
 
-  return clampBounds(
+  return clampPrimaryWindowBounds(
     {
+      monitorIndex,
       x: (container.width - width) / 2,
       y: (container.height - height) / 2,
       width,
       height,
     },
-    container,
+    monitorCount,
   );
 }
 
-export function ResizableAppWindow({ windowId, children }: ResizableAppWindowProps) {
+export function ResizableAppWindow({
+  windowId,
+  disabled = false,
+  children,
+}: ResizableAppWindowProps) {
   const { sizePreset } = useAppWindow();
-  const { getWindow, updateWindowBounds } = usePrimaryWindows();
+  const { monitorCount } = useMonitorLayout();
+  const { getWindow, updateWindowBounds, startWindowDrag } = usePrimaryWindows();
   const windowRef = useRef<HTMLDivElement>(null);
   const stored = getWindow(windowId);
   const bounds: WindowBounds = stored ?? {
+    monitorIndex: 0,
     x: 0,
     y: 0,
     width: MIN_WIDTH,
     height: MIN_HEIGHT,
   };
-  const dragRef = useRef<{
-    startX: number;
-    startY: number;
-    orig: WindowBounds;
-  } | null>(null);
   const resizeRef = useRef<{
     edge: ResizeEdge;
     startX: number;
@@ -98,67 +82,46 @@ export function ResizableAppWindow({ windowId, children }: ResizableAppWindowPro
     orig: WindowBounds;
   } | null>(null);
 
-  const clampToDesktop = useCallback((next: WindowBounds) => {
-    const container = getDesktopContainerSize(windowRef.current);
-    return clampBounds(next, container);
-  }, []);
+  const clampToMonitor = useCallback(
+    (next: WindowBounds) => clampPrimaryWindowBounds(next, monitorCount),
+    [monitorCount],
+  );
 
   const setBounds = useCallback(
     (next: WindowBounds) => {
-      updateWindowBounds(windowId, clampToDesktop(next));
+      updateWindowBounds(windowId, clampToMonitor(next));
     },
-    [windowId, updateWindowBounds, clampToDesktop],
+    [windowId, updateWindowBounds, clampToMonitor],
   );
 
-  const hasAppliedPresetRef = useRef(false);
+  const prevPresetRef = useRef(sizePreset);
 
   useEffect(() => {
-    const element = windowRef.current;
-    if (!element) return;
+    if (prevPresetRef.current === sizePreset) return;
 
-    if (hasAppliedPresetRef.current) {
-      setBounds(getBoundsForPreset(sizePreset, getDesktopContainerSize(element)));
-    } else {
-      hasAppliedPresetRef.current = true;
-    }
-  }, [sizePreset, setBounds]);
+    prevPresetRef.current = sizePreset;
+    setBounds(getBoundsForPreset(sizePreset, bounds.monitorIndex, monitorCount));
+  }, [sizePreset, setBounds, bounds.monitorIndex, monitorCount]);
 
   useEffect(() => {
-    const element = windowRef.current;
-    if (!element) return;
-
     const handleResize = () => {
       const current = getWindow(windowId);
       if (!current) return;
-      updateWindowBounds(
-        windowId,
-        clampBounds(
-          {
-            x: current.x,
-            y: current.y,
-            width: current.width,
-            height: current.height,
-          },
-          getDesktopContainerSize(element),
-        ),
-      );
+      updateWindowBounds(windowId, clampPrimaryWindowBounds(current, monitorCount));
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [windowId, getWindow, updateWindowBounds]);
+  }, [windowId, getWindow, updateWindowBounds, monitorCount]);
 
-  const startWindowDrag = useCallback(
+  const handleWindowDragStart = useCallback(
     (event: React.MouseEvent) => {
+      if (disabled) return;
       if ((event.target as HTMLElement).closest('button, input, a')) return;
       event.preventDefault();
-      dragRef.current = {
-        startX: event.clientX,
-        startY: event.clientY,
-        orig: bounds,
-      };
+      startWindowDrag(windowId, event.clientX, event.clientY);
     },
-    [bounds],
+    [disabled, startWindowDrag, windowId],
   );
 
   const startResize = useCallback(
@@ -177,41 +140,29 @@ export function ResizableAppWindow({ windowId, children }: ResizableAppWindowPro
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      if (dragRef.current) {
-        const dx = event.clientX - dragRef.current.startX;
-        const dy = event.clientY - dragRef.current.startY;
-        setBounds({
-          ...dragRef.current.orig,
-          x: dragRef.current.orig.x + dx,
-          y: dragRef.current.orig.y + dy,
-        });
-        return;
+      if (!resizeRef.current) return;
+
+      const { edge, startX, startY, orig } = resizeRef.current;
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+
+      let { x, y, width, height } = orig;
+
+      if (edge.includes('e')) width = orig.width + dx;
+      if (edge.includes('w')) {
+        width = orig.width - dx;
+        x = orig.x + dx;
+      }
+      if (edge.includes('s')) height = orig.height + dy;
+      if (edge.includes('n')) {
+        height = orig.height - dy;
+        y = orig.y + dy;
       }
 
-      if (resizeRef.current) {
-        const { edge, startX, startY, orig } = resizeRef.current;
-        const dx = event.clientX - startX;
-        const dy = event.clientY - startY;
-
-        let { x, y, width, height } = orig;
-
-        if (edge.includes('e')) width = orig.width + dx;
-        if (edge.includes('w')) {
-          width = orig.width - dx;
-          x = orig.x + dx;
-        }
-        if (edge.includes('s')) height = orig.height + dy;
-        if (edge.includes('n')) {
-          height = orig.height - dy;
-          y = orig.y + dy;
-        }
-
-        setBounds({ x, y, width, height });
-      }
+      setBounds({ ...orig, x, y, width, height });
     };
 
     const handleMouseUp = () => {
-      dragRef.current = null;
       resizeRef.current = null;
     };
 
@@ -225,7 +176,7 @@ export function ResizableAppWindow({ windowId, children }: ResizableAppWindowPro
 
   const edges: ResizeEdge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
   const content =
-    typeof children === 'function' ? children(startWindowDrag) : children;
+    typeof children === 'function' ? children(handleWindowDragStart) : children;
 
   return (
     <div

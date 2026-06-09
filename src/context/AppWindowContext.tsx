@@ -11,6 +11,8 @@ import {
   type WindowSizePreset,
 } from '../config/windowSizes';
 import { PROJECT_NAME } from '../config/project';
+import { usePrimaryWindowIdOptional } from './PrimaryWindowContext';
+import { useScopeTabsOptional } from './ScopeTabContext';
 
 interface AppWindowContextValue {
   projectName: string;
@@ -49,5 +51,16 @@ export function useAppWindow() {
 
 export function useProjectName() {
   const context = useContext(AppWindowContext);
+  const windowId = usePrimaryWindowIdOptional();
+  const scopeTabs = useScopeTabsOptional();
+
+  if (windowId && scopeTabs) {
+    const activeTabId = scopeTabs.getActiveTabForWindow(windowId);
+    const activeTab = scopeTabs.tabs.find((tab) => tab.id === activeTabId);
+    if (activeTab?.projectName) {
+      return activeTab.projectName;
+    }
+  }
+
   return context?.projectName ?? PROJECT_NAME;
 }

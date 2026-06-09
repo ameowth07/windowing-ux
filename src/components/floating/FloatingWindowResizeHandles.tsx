@@ -5,12 +5,16 @@ import {
 import './FloatingWindowResizeHandles.css';
 
 interface FloatingWindowResizeHandlesProps {
-  onResizeStart: (edge: FloatingResizeEdge, event: React.PointerEvent) => void;
+  onResizeStart?: (edge: FloatingResizeEdge, event: React.PointerEvent) => void;
 }
 
 export function FloatingWindowResizeHandles({
   onResizeStart,
 }: FloatingWindowResizeHandlesProps) {
+  if (!onResizeStart) {
+    return null;
+  }
+
   return (
     <>
       {FLOATING_RESIZE_EDGES.map((edge) => (

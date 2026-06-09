@@ -10,6 +10,11 @@ import {
   WINDOW_SIZE_PRESETS,
 } from '../../config/windowSizes';
 import { getPanelDefinition } from '../../data/panels';
+import {
+  MONITOR_COUNT_LABELS,
+  MONITOR_COUNT_OPTIONS,
+} from '../../config/monitorLayout';
+import { useMonitorLayout } from '../../context/MonitorLayoutContext';
 import { useAppWindow } from '../../context/AppWindowContext';
 import { useAuxiliaryWindowSize } from '../../context/AuxiliaryWindowSizeContext';
 import { useEdgeDropZoneDelay } from '../../context/EdgeDropZoneDelayContext';
@@ -28,6 +33,7 @@ export function DesktopSettingsMenu() {
   const { enabled: enforceDocumentRegion, setEnabled: setEnforceDocumentRegion } =
     useEnforceDocumentRegion();
   const { getSize, setSize } = useAuxiliaryWindowSize();
+  const { monitorCount, setMonitorCount } = useMonitorLayout();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +112,26 @@ export function DesktopSettingsMenu() {
               />
             ))}
           </div>
+          <div className="desktop-settings__divider" />
+          <div className="desktop-settings__heading">Desktop environments</div>
+          {MONITOR_COUNT_OPTIONS.map((count) => {
+            const active = count === monitorCount;
+
+            return (
+              <button
+                key={count}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                className={`desktop-settings__option ${active ? 'desktop-settings__option--active' : ''}`}
+                onClick={() => setMonitorCount(count)}
+              >
+                <span className="desktop-settings__option-label">
+                  {MONITOR_COUNT_LABELS[count]}
+                </span>
+              </button>
+            );
+          })}
           <div className="desktop-settings__divider" />
           <div className="desktop-settings__heading">App bar</div>
           <label className="desktop-settings__toggle">

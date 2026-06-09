@@ -14,15 +14,21 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { FloatDragPreviewProvider } from '../context/FloatDragPreviewContext';
+import {
+  FloatingWindowDragOverlayProvider,
+  type FloatingWindowDragOverlayState,
+} from '../context/FloatingWindowDragOverlayContext';
 import { useAuxiliaryWindowSize } from '../context/AuxiliaryWindowSizeContext';
-import { getFloatingPosition, useFloatingContainer } from '../context/FloatingContainerContext';
+import { usePrimaryWindowId } from '../context/PrimaryWindowContext';
+import { usePrimaryWindows } from '../context/PrimaryWindowsContext';
+import { getFloatingPosition, resolveFloatingPlacement, useFloatingContainer } from '../context/FloatingContainerContext';
+import { useMonitorLayout } from '../context/MonitorLayoutContext';
 import { useEnforceDocumentRegionEnabled } from '../context/EnforceDocumentRegionContext';
 import {
   canGroupDragWithTarget,
   getTargetPanelIdsForNode,
 } from '../utils/panelGrouping';
 import { isFloatingWindowId } from '../model/layoutOperations';
-import { usePrimaryWindowId } from '../context/PrimaryWindowContext';
 import { useProjectTabBarEnabled } from '../context/ProjectTabBarContext';
 import { useScopeTabs } from '../context/ScopeTabContext';
 import { useLayout } from '../context/LayoutContext';
@@ -45,6 +51,7 @@ import {
 import { TabGroupDragOverlay } from './layout/TabGroupDragOverlay';
 import { ShellEdgeZoneActivationTracker } from './layout/ShellEdgeZoneActivationTracker';
 import { TabPreview } from './layout/TabPreview';
+import { FloatingWindowDragOverlay } from './floating/FloatingWindowDragOverlay';
 import {
   getPointerFromDragEvent,
   resolveFloatDropPreview,
@@ -98,7 +105,11 @@ export function DragDropRoot({ children, workspaceRef }: DragDropRootProps) {
 function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
   const { getSnapshot } = useTabBarDragSnapshotRegistry();
   const { getSize: getIdealAuxiliarySize } = useAuxiliaryWindowSize();
-  const floatingContainerRef = useFloatingContainer();
+  const windowId = usePrimaryWindowId();
+  const { getWindow } = usePrimaryWindows();
+  const monitorIndex = getWindow(windowId)?.monitorIndex ?? 0;
+  const floatingContainerRef = useFloatingContainer(monitorIndex);
+  const { monitorCount } = useMonitorLayout();
   const {
     state,
     dockPanel,
@@ -116,13 +127,26 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
   } = useLayout();
   const projectTabBar = useProjectTabBarEnabled();
   const enforceDocumentRegion = useEnforceDocumentRegionEnabled();
-  const windowId = usePrimaryWindowId();
   const { getActiveTabForWindow } = useScopeTabs();
   const activeTabId = getActiveTabForWindow(windowId);
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
   const [tabGroupDragSnapshot, setTabGroupDragSnapshot] =
     useState<TabBarDragSnapshot | null>(null);
   const [floatPreview, setFloatPreview] = useState<FloatDragPreview | null>(null);
+  const [floatingDragOverlay, setFloatingDragOverlay] =
+    useState<FloatingWindowDragOverlayState | null>(null);
+
+  const getFloatingDragScreenPosition = useCallback(
+    (
+      pointer: { x: number; y: number },
+      width: number,
+      _height: number,
+    ): { screenX: number; screenY: number } => ({
+      screenX: pointer.x - width / 2,
+      screenY: pointer.y - 24,
+    }),
+    [],
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -179,14 +203,14 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
           overData: event.over?.data.current,
           pointer,
           workspaceRect: workspaceRef.current?.getBoundingClientRect() ?? null,
-          floatingContainer: floatingContainerRef?.current ?? null,
           floatingWindows: state.floating,
           getIdealSize: getIdealAuxiliarySize,
           enforceDocumentRegion,
+          monitorCount,
         }),
       );
     },
-    [enforceDocumentRegion, floatingContainerRef, getIdealAuxiliarySize, state.floating, workspaceRef],
+    [enforceDocumentRegion, getIdealAuxiliarySize, monitorCount, state.floating, workspaceRef],
   );
 
   const updateFloatingWindowPosition = useCallback(
@@ -200,6 +224,30 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       if (!floatingWindow) return;
 
       const pointer = getPointerFromDragEvent(event);
+      if (monitorCount > 1) {
+        const { x, y, monitorIndex: targetMonitorIndex } = resolveFloatingPlacement(
+          pointer.x,
+          pointer.y,
+          floatingWindow.width,
+          floatingWindow.height,
+          monitorCount,
+        );
+        const { screenX, screenY } = getFloatingDragScreenPosition(
+          pointer,
+          floatingWindow.width,
+          floatingWindow.height,
+        );
+        setFloatingDragOverlay({
+          floatingWindowId,
+          screenX,
+          screenY,
+        });
+        moveFloating(floatingWindowId, x, y, targetMonitorIndex);
+        return;
+      }
+
+      setFloatingDragOverlay(null);
+
       const { x, y } = getFloatingPosition(
         floatingContainerRef?.current ?? null,
         pointer.x,
@@ -209,7 +257,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       );
       moveFloating(floatingWindowId, x, y);
     },
-    [floatingContainerRef, moveFloating, state.floating],
+    [floatingContainerRef, getFloatingDragScreenPosition, monitorCount, moveFloating, state.floating],
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -229,6 +277,24 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
 
     if (isFloatingWindowDrag(data)) {
       setFloatPreview(null);
+      if (monitorCount > 1) {
+        const floatingWindow = state.floating.find(
+          (window) => window.id === data.floatingWindowId,
+        );
+        if (floatingWindow) {
+          const activator = event.activatorEvent as PointerEvent;
+          const { screenX, screenY } = getFloatingDragScreenPosition(
+            { x: activator.clientX, y: activator.clientY },
+            floatingWindow.width,
+            floatingWindow.height,
+          );
+          setFloatingDragOverlay({
+            floatingWindowId: data.floatingWindowId,
+            screenX,
+            screenY,
+          });
+        }
+      }
     }
   };
 
@@ -254,6 +320,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
     setActiveDrag(null);
     setTabGroupDragSnapshot(null);
     setFloatPreview(null);
+    setFloatingDragOverlay(null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -358,10 +425,10 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       overData,
       pointer,
       workspaceRect: workspaceEl.getBoundingClientRect(),
-      floatingContainer: floatingContainerRef?.current ?? null,
       floatingWindows: state.floating,
       getIdealSize: getIdealAuxiliarySize,
       enforceDocumentRegion,
+      monitorCount,
     });
 
     if (preview?.kind === 'window') {
@@ -371,6 +438,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         preview.y,
         preview.width,
         preview.height,
+        preview.monitorIndex,
       );
     }
   };
@@ -460,6 +528,18 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
     }
 
     const pointer = getPointerFromDragEvent(event);
+    if (monitorCount > 1) {
+      const { x, y, monitorIndex: targetMonitorIndex } = resolveFloatingPlacement(
+        pointer.x,
+        pointer.y,
+        floatingWindow.width,
+        floatingWindow.height,
+        monitorCount,
+      );
+      moveFloating(floatingWindowId, x, y, targetMonitorIndex);
+      return;
+    }
+
     const { x, y } = getFloatingPosition(
       floatingContainerRef?.current ?? null,
       pointer.x,
@@ -599,10 +679,10 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       overData,
       pointer,
       workspaceRect: workspaceEl.getBoundingClientRect(),
-      floatingContainer: floatingContainerRef?.current ?? null,
       floatingWindows: state.floating,
       getIdealSize: getIdealAuxiliarySize,
       enforceDocumentRegion,
+      monitorCount,
     });
 
     if (preview?.kind === 'window') {
@@ -612,13 +692,15 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         preview.y,
         preview.width,
         preview.height,
+        preview.monitorIndex,
       );
     }
   };
 
   return (
     <FloatDragPreviewProvider preview={floatPreview}>
-      <DndContext
+      <FloatingWindowDragOverlayProvider overlay={floatingDragOverlay}>
+        <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
@@ -641,7 +723,9 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
             <TabGroupDragOverlay snapshot={tabGroupDragSnapshot} />
           ) : null}
         </DragOverlay>
+        <FloatingWindowDragOverlay />
       </DndContext>
+      </FloatingWindowDragOverlayProvider>
     </FloatDragPreviewProvider>
   );
 }

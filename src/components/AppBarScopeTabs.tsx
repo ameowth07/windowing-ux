@@ -7,6 +7,7 @@ import {
   getPrimaryWindowGhostScreenBounds,
 } from '../utils/primaryWindowPosition';
 import { INITIAL_WINDOW_ID } from '../context/PrimaryWindowsContext';
+import { useMonitorLayout } from '../context/MonitorLayoutContext';
 import {
   normalizeScopeTabIcon,
   useScopeTabsForWindow,
@@ -152,12 +153,9 @@ function updateScopeTabDropTarget(
     ?.classList.add('scope-tab-drop-target');
 }
 
-function getDesktopWindowsContainer() {
-  return document.querySelector<HTMLElement>('.desktop__windows');
-}
-
 export function AppBarScopeTabs() {
   const windowId = usePrimaryWindowIdOptional() ?? INITIAL_WINDOW_ID;
+  const { monitorCount } = useMonitorLayout();
   const {
     tabs,
     activeTabId,
@@ -275,7 +273,7 @@ export function AppBarScopeTabs() {
             getPrimaryWindowDropBounds(
               event.clientX,
               event.clientY,
-              getDesktopWindowsContainer(),
+              monitorCount,
             ),
           );
         }
@@ -293,20 +291,19 @@ export function AppBarScopeTabs() {
       window.removeEventListener('pointerup', handlePointerUp);
       clearScopeTabDropTargets();
     };
-  }, [windowId, tabs, detachTabToNewWindow, attachTabToWindow, reorderTabInWindow]);
+  }, [windowId, tabs, detachTabToNewWindow, attachTabToWindow, reorderTabInWindow, monitorCount]);
 
   const previewTab = dragState
     ? tabs.find((tab) => tab.id === dragState.tabId)
     : null;
   const isReordering = dragState?.mode === 'reorder';
   const isDetaching = dragState?.mode === 'detach';
-  const desktopWindowsContainer = getDesktopWindowsContainer();
   const detachPreviewBounds =
     isDetaching && dragState
       ? getPrimaryWindowGhostScreenBounds(
           dragState.x,
           dragState.y,
-          desktopWindowsContainer,
+          monitorCount,
         )
       : null;
 

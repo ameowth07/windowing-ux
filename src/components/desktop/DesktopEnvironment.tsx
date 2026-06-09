@@ -1,46 +1,139 @@
-import { useRef, type ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
+import { useMonitorLayout } from '../../context/MonitorLayoutContext';
+import {
+  MonitorWindowsProvider,
+  useMonitorWindows,
+} from '../../context/MonitorWindowsContext';
 import { FloatingContainerProvider } from '../../context/FloatingContainerContext';
+import { GalleryDesktop } from './GalleryDesktop';
+import { PrimaryWindowsLayer } from './PrimaryWindowsLayer';
+import { PrimaryWindowDragOverlay } from './PrimaryWindowDragOverlay';
 import { DesktopSettingsMenu } from './DesktopSettingsMenu';
+import { usePrimaryWindows } from '../../context/PrimaryWindowsContext';
 import './DesktopEnvironment.css';
 
 interface DesktopEnvironmentProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 export function DesktopEnvironment({ children }: DesktopEnvironmentProps) {
-  const windowsRef = useRef<HTMLDivElement>(null);
+  return (
+    <MonitorWindowsProvider>
+      <DesktopEnvironmentInner>{children}</DesktopEnvironmentInner>
+    </MonitorWindowsProvider>
+  );
+}
+
+function DesktopEnvironmentInner({ children }: DesktopEnvironmentProps) {
+  const { monitorCount } = useMonitorLayout();
+  const { registerContainer } = useMonitorWindows();
+  const { dragTargetMonitorIndex } = usePrimaryWindows();
+
+  const setMonitorRef = useCallback(
+    (monitorIndex: number) => (element: HTMLDivElement | null) => {
+      registerContainer(monitorIndex, element);
+    },
+    [registerContainer],
+  );
+
+  if (monitorCount === 1) {
+    return (
+      <FloatingContainerProvider>
+        <div className="desktop">
+          <div className="desktop__wallpaper" aria-hidden="true" />
+          <DesktopSettingsMenu />
+          <div className="desktop__icons">
+            <DesktopIcons />
+          </div>
+          <div
+            className="desktop__workspace desktop__workspace--single"
+            data-monitor-count={monitorCount}
+          >
+            <div
+              ref={setMonitorRef(0)}
+              className="desktop__windows desktop__monitor-windows"
+              data-monitor-index={0}
+            >
+              {children ?? <PrimaryWindowsLayer monitorIndex={0} />}
+            </div>
+          </div>
+          <WindowsTaskbar />
+        </div>
+      </FloatingContainerProvider>
+    );
+  }
 
   return (
-    <FloatingContainerProvider containerRef={windowsRef}>
-      <div className="desktop">
-        <div className="desktop__wallpaper" aria-hidden="true" />
+    <FloatingContainerProvider>
+      <div className="desktop desktop--gallery">
         <DesktopSettingsMenu />
-        <div className="desktop__icons">
-          <button type="button" className="desktop-icon">
-            <span className="desktop-icon__glyph desktop-icon__glyph--recycle" />
-            <span className="desktop-icon__label">Recycle Bin</span>
-          </button>
-          <button type="button" className="desktop-icon desktop-icon--selected">
-            <span className="desktop-icon__glyph desktop-icon__glyph--studio" />
-            <span className="desktop-icon__label">Studio</span>
-          </button>
+        <div
+          className="desktop__gallery"
+          data-monitor-count={monitorCount}
+          style={{ '--monitor-count': monitorCount } as React.CSSProperties}
+        >
+          {Array.from({ length: monitorCount }, (_, index) => (
+            <div
+              key={index}
+              className={[
+                'desktop__gallery-item',
+                monitorCount === 3 && index === 2
+                  ? 'desktop__gallery-item--bottom-center'
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              <GalleryDesktop
+                index={index}
+                windowsRef={setMonitorRef(index)}
+                isDropTarget={dragTargetMonitorIndex === index}
+                footer={
+                  index === monitorCount - 1 ? (
+                    <WindowsTaskbar embedded />
+                  ) : undefined
+                }
+              >
+                {children ?? <PrimaryWindowsLayer monitorIndex={index} />}
+              </GalleryDesktop>
+            </div>
+          ))}
         </div>
-        <div ref={windowsRef} className="desktop__windows">
-          {children}
-        </div>
-        <WindowsTaskbar />
+        <PrimaryWindowDragOverlay />
       </div>
     </FloatingContainerProvider>
   );
 }
 
-function WindowsTaskbar() {
+function DesktopIcons() {
+  return (
+    <>
+      <button type="button" className="desktop-icon">
+        <span className="desktop-icon__glyph desktop-icon__glyph--recycle" />
+        <span className="desktop-icon__label">Recycle Bin</span>
+      </button>
+      <button type="button" className="desktop-icon desktop-icon--selected">
+        <span className="desktop-icon__glyph desktop-icon__glyph--studio" />
+        <span className="desktop-icon__label">Studio</span>
+      </button>
+    </>
+  );
+}
+
+function WindowsTaskbar({ embedded = false }: { embedded?: boolean }) {
   const now = new Date();
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const date = now.toLocaleDateString([], { month: 'numeric', day: 'numeric', year: 'numeric' });
 
   return (
-    <footer className="win-taskbar">
+    <footer
+      className={[
+        'win-taskbar',
+        embedded ? 'win-taskbar--embedded' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <button type="button" className="win-taskbar__start" aria-label="Start">
         <WindowsLogo />
       </button>

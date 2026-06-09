@@ -44,6 +44,8 @@ export interface FloatingWindow {
   width: number;
   height: number;
   scopeTabId?: string;
+  /** Desktop/monitor index in gallery mode; defaults to the owning primary window's monitor. */
+  monitorIndex?: number;
 }
 
 export interface LayoutState {

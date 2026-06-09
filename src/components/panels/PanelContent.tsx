@@ -1,8 +1,12 @@
 import type { ReactNode } from 'react';
 import { usePrimaryWindowIdOptional } from '../../context/PrimaryWindowContext';
-import { useScopeTabsOptional } from '../../context/ScopeTabContext';
+import {
+  isScopeTabEmptyPlace,
+  useScopeTabsOptional,
+} from '../../context/ScopeTabContext';
 import { useSkeletonContentEnabled } from '../../context/SkeletonContentContext';
 import { INITIAL_WINDOW_ID } from '../../context/PrimaryWindowsContext';
+import { RECENT_PROJECTS } from '../../config/recentProjects';
 import { getPlaceSkeletonVariant } from '../../data/initialLayout';
 import { getBasePanelId } from '../../utils/panelId';
 import type { PanelId } from '../../types/layout';
@@ -168,7 +172,11 @@ function PlaceSkeleton() {
   const windowId = usePrimaryWindowIdOptional() ?? INITIAL_WINDOW_ID;
   const scopeTabs = useScopeTabsOptional();
   const scopeTabId = resolveScopeTabId(windowId, scopeTabs, 'project-1');
-  const variant = getPlaceSkeletonVariant(scopeTabId);
+  const activeTab = scopeTabs?.tabs.find((tab) => tab.id === scopeTabId);
+  const variant = activeTab?.recentProjectId
+    ? (RECENT_PROJECTS[activeTab.recentProjectId].placeSkeletonVariant ??
+      getPlaceSkeletonVariant(scopeTabId))
+    : getPlaceSkeletonVariant(scopeTabId);
 
   if (variant === 'fps') {
     return <PlaceFpsSkeleton />;
@@ -358,11 +366,15 @@ export function PanelContent({
   const windowId = usePrimaryWindowIdOptional() ?? INITIAL_WINDOW_ID;
   const scopeTabs = useScopeTabsOptional();
   const scopeTabId = resolveScopeTabId(windowId, scopeTabs, 'project-1');
+  const isEmptyPlace =
+    baseId === 'place' &&
+    scopeTabs &&
+    isScopeTabEmptyPlace(scopeTabId, scopeTabs.tabs);
   const placeVariant =
     baseId === 'place' ? getPlaceSkeletonVariant(scopeTabId) : null;
   const Skeleton = PANEL_SKELETONS[baseId] ?? GenericSkeleton;
 
-  if (!skeletonEnabled) {
+  if (isEmptyPlace || !skeletonEnabled) {
     return (
       <div className="panel-content">
         <div className="panel-content__body" />

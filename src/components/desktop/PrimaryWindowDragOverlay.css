@@ -1,0 +1,18 @@
+.primary-window-drag-overlay {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.primary-window-drag-overlay .primary-window-stack {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+}
+
+.primary-window-drag-overlay .primary-window-stack .resizable-app-window,
+.primary-window-drag-overlay .primary-window-stack .floating-layer > * {
+  pointer-events: none;
+}

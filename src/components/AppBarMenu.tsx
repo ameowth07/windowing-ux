@@ -6,8 +6,11 @@ import {
   getUndockPosition,
   useFloatingContainer,
 } from '../context/FloatingContainerContext';
+import { usePrimaryWindowId } from '../context/PrimaryWindowContext';
+import { usePrimaryWindows } from '../context/PrimaryWindowsContext';
 import { useLayout } from '../context/LayoutContext';
 import { useSavedLayouts } from '../context/SavedLayoutsContext';
+import { getRecentProjectIdForMenuAction } from '../config/recentProjects';
 import { useScopeTabs } from '../context/ScopeTabContext';
 import { collectAllPanelIds } from '../model/layoutOperations';
 import type { PanelId } from '../types/layout';
@@ -34,10 +37,13 @@ interface AppBarMenuProps {
 }
 
 export function AppBarMenu({ children }: AppBarMenuProps) {
-  const { createNewProject } = useScopeTabs();
+  const { createNewProject, openRecentProject } = useScopeTabs();
   const { floatPanel, state, setLayoutState } = useLayout();
   const { savedLayouts, saveLayout } = useSavedLayouts();
-  const floatingContainerRef = useFloatingContainer();
+  const windowId = usePrimaryWindowId();
+  const { getWindow } = usePrimaryWindows();
+  const monitorIndex = getWindow(windowId)?.monitorIndex ?? 0;
+  const floatingContainerRef = useFloatingContainer(monitorIndex);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const fileMenuRef = useRef<HTMLButtonElement>(null);
   const windowMenuRef = useRef<HTMLButtonElement>(null);
@@ -46,6 +52,8 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   const openLayoutRef = useRef<HTMLButtonElement>(null);
   const menuPortalRef = useRef<HTMLDivElement>(null);
   const fileSubmenuRef = useRef<HTMLDivElement>(null);
+  const fileRecentRef = useRef<HTMLButtonElement>(null);
+  const fileRecentMenuRef = useRef<HTMLDivElement>(null);
   const windowSubmenuRef = useRef<HTMLDivElement>(null);
   const addTabMenuRef = useRef<HTMLDivElement>(null);
   const addTabNestedMenuRef = useRef<HTMLDivElement>(null);
@@ -78,6 +86,8 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   const isPointerOverSubmenuArea = () => {
     const overFile = fileMenuRef.current?.matches(':hover') ?? false;
     const overFileSubmenu = fileSubmenuRef.current?.matches(':hover') ?? false;
+    const overFileRecent = fileRecentRef.current?.matches(':hover') ?? false;
+    const overFileRecentMenu = fileRecentMenuRef.current?.matches(':hover') ?? false;
     const overWindow = windowMenuRef.current?.matches(':hover') ?? false;
     const overWindowSubmenu = windowSubmenuRef.current?.matches(':hover') ?? false;
     const overAddTab = addTabRef.current?.matches(':hover') ?? false;
@@ -90,6 +100,8 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
     return (
       overFile ||
       overFileSubmenu ||
+      overFileRecent ||
+      overFileRecentMenu ||
       overWindow ||
       overWindowSubmenu ||
       overAddTab ||
@@ -170,6 +182,13 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   const handleFileAction = (actionId: string) => {
     if (actionId === 'new-project') {
       createNewProject();
+      close();
+      return;
+    }
+
+    const recentProjectId = getRecentProjectIdForMenuAction(actionId);
+    if (recentProjectId) {
+      openRecentProject(recentProjectId);
     }
     close();
   };
@@ -244,6 +263,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
         portalRef={menuPortalRef}
         ignoreRefs={[
           fileSubmenuRef,
+          fileRecentMenuRef,
           windowSubmenuRef,
           addTabMenuRef,
           addTabNestedMenuRef,
@@ -333,6 +353,8 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
         open={open && activeSubmenu === 'file'}
         anchorRef={fileMenuRef}
         portalRef={fileSubmenuRef}
+        recentAnchorRef={fileRecentRef}
+        recentPortalRef={fileRecentMenuRef}
         onAction={handleFileAction}
         onPointerEnter={clearSubmenuCloseTimer}
         onPointerLeave={scheduleSubmenuClose}

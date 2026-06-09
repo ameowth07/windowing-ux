@@ -25,8 +25,7 @@
 }
 
 .studio-menu__item:hover:not(.studio-menu__item--checked),
-.studio-menu__item:focus-visible:not(.studio-menu__item--checked),
-.studio-menu__item--selected {
+.studio-menu__item:focus-visible:not(.studio-menu__item--checked) {
   background:
     linear-gradient(90deg, var(--bg-shift-300) 0%, var(--bg-shift-300) 100%),
     linear-gradient(90deg, rgba(51, 95, 255, 0.4) 0%, rgba(51, 95, 255, 0.4) 100%);

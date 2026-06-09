@@ -6,6 +6,11 @@
   background: #1a1a2e;
 }
 
+.desktop--gallery {
+  background: #12131a;
+  overflow: visible;
+}
+
 .desktop__wallpaper {
   position: absolute;
   inset: 0;
@@ -77,21 +82,83 @@
   word-break: break-word;
 }
 
-.desktop__windows {
+.desktop__workspace {
   position: absolute;
   inset: 8px;
   bottom: calc(var(--win-taskbar-height) + 8px);
   z-index: 2;
+}
+
+.desktop__workspace--single {
+  inset: 8px;
+  bottom: calc(var(--win-taskbar-height) + 8px);
+}
+
+.desktop__gallery {
+  position: absolute;
+  inset: 8px;
+  display: grid;
+  gap: 16px;
+  z-index: 2;
+}
+
+.desktop__gallery[data-monitor-count='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.desktop__gallery[data-monitor-count='3'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.desktop__gallery-item {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.desktop__gallery[data-monitor-count='3'] .desktop__gallery-item--bottom-center {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
+
+.desktop__gallery[data-monitor-count='3'] .desktop__gallery-item--bottom-center .gallery-desktop {
+  width: calc((100% - 16px) / 2);
+  max-width: calc((100% - 16px) / 2);
+}
+
+.desktop__windows {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
 }
 
+.desktop__monitor-windows > .primary-window-stack,
+.desktop__windows > .primary-window-stack,
+.gallery-desktop__windows > .primary-window-stack {
+  pointer-events: none;
+}
+
+.desktop__monitor-windows > .primary-window-stack .resizable-app-window,
+.desktop__monitor-windows > .primary-window-stack .floating-layer > *,
 .desktop__windows > .primary-window-stack .resizable-app-window,
-.desktop__windows > .primary-window-stack .floating-layer > * {
+.desktop__windows > .primary-window-stack .floating-layer > *,
+.gallery-desktop__windows > .primary-window-stack .resizable-app-window,
+.gallery-desktop__windows > .primary-window-stack .floating-layer > * {
   pointer-events: auto;
 }
 
-.desktop__windows > .primary-window-ghost {
+.desktop__monitor-windows > .primary-window-ghost,
+.desktop__windows > .primary-window-ghost,
+.gallery-desktop__windows > .primary-window-ghost {
   pointer-events: none;
+}
+
+.primary-window-stack--dragging {
+  z-index: 1000;
 }
 
 .win-taskbar {
@@ -108,6 +175,16 @@
   backdrop-filter: blur(24px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 10;
+}
+
+.win-taskbar--embedded {
+  z-index: 3;
+}
+
+.win-taskbar--embedded .win-taskbar__search {
+  min-width: 0;
+  flex: 1;
+  max-width: 180px;
 }
 
 .win-taskbar__start {

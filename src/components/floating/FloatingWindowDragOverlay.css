@@ -1,0 +1,10 @@
+.floating-window-drag-overlay {
+  pointer-events: none;
+  position: absolute;
+  z-index: 30;
+}
+
+.floating-window-drag-overlay .floating-window {
+  position: absolute;
+  inset: 0;
+}

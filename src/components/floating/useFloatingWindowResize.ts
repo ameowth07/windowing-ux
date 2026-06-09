@@ -8,6 +8,8 @@ import {
   useFloatingContainer,
 } from '../../context/FloatingContainerContext';
 import { useLayout } from '../../context/LayoutContext';
+import { usePrimaryWindowId } from '../../context/PrimaryWindowContext';
+import { usePrimaryWindows } from '../../context/PrimaryWindowsContext';
 
 export type FloatingResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
@@ -75,8 +77,16 @@ export function useFloatingWindowResize(
   floatingWindowId: string,
   bounds: FloatingBounds,
 ) {
-  const floatingContainerRef = useFloatingContainer();
-  const { resizeFloating } = useLayout();
+  const windowId = usePrimaryWindowId();
+  const { getWindow } = usePrimaryWindows();
+  const primaryMonitorIndex = getWindow(windowId)?.monitorIndex ?? 0;
+  const { state, resizeFloating } = useLayout();
+  const floatingWindow = state.floating.find(
+    (window) => window.id === floatingWindowId,
+  );
+  const floatMonitorIndex =
+    floatingWindow?.monitorIndex ?? primaryMonitorIndex;
+  const floatingContainerRef = useFloatingContainer(floatMonitorIndex);
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<{
     edge: FloatingResizeEdge;

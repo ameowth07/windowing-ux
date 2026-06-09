@@ -7,6 +7,12 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import {
+  getRecentProjectTabId,
+  RECENT_PROJECTS,
+  type RecentProjectId,
+} from '../config/recentProjects';
+import { PROJECT_NAME } from '../config/project';
 import { usePrimaryWindowIdOptional } from './PrimaryWindowContext';
 import { INITIAL_WINDOW_ID, usePrimaryWindows } from './PrimaryWindowsContext';
 
@@ -37,6 +43,10 @@ export interface ScopeTab {
   label: 'Project' | 'Asset';
   icon: ScopeTabIcon;
   windowId: string;
+  projectName?: string;
+  recentProjectId?: RecentProjectId;
+  /** When true, the Place document renders empty (no skeleton preview). */
+  emptyPlace?: boolean;
 }
 
 const INITIAL_TABS: ScopeTab[] = [
@@ -69,7 +79,13 @@ interface ScopeTabContextValue {
   closeTab: (tabId: string) => void;
   detachTabToNewWindow: (
     tabId: string,
-    bounds: { x: number; y: number; width?: number; height?: number },
+    bounds: {
+      monitorIndex?: number;
+      x: number;
+      y: number;
+      width?: number;
+      height?: number;
+    },
   ) => void;
   attachTabToWindow: (tabId: string, targetWindowId: string) => void;
   reorderTabInWindow: (
@@ -79,6 +95,7 @@ interface ScopeTabContextValue {
   ) => void;
   closePrimaryWindow: (windowId: string) => void;
   createNewProject: () => string;
+  openRecentProject: (projectId: RecentProjectId) => string;
 }
 
 const ScopeTabContext = createContext<ScopeTabContextValue | null>(null);
@@ -89,7 +106,7 @@ function getNeighborTabId(tabs: ScopeTab[], closedIndex: number): string {
 }
 
 export function ScopeTabProvider({ children }: { children: ReactNode }) {
-  const { windows, createWindowAt, removeWindow, focusWindow } =
+  const { windows, createWindowAt, removeWindow, focusWindow, getFocusedWindow } =
     usePrimaryWindows();
   const [tabs, setTabs] = useState(() => INITIAL_TABS.map(normalizeScopeTab));
 
@@ -213,7 +230,13 @@ export function ScopeTabProvider({ children }: { children: ReactNode }) {
   const detachTabToNewWindow = useCallback(
     (
       tabId: string,
-      bounds: { x: number; y: number; width?: number; height?: number },
+      bounds: {
+        monitorIndex?: number;
+        x: number;
+        y: number;
+        width?: number;
+        height?: number;
+      },
     ) => {
       const tab = tabs.find((entry) => entry.id === tabId);
       if (!tab) return;
@@ -268,11 +291,11 @@ export function ScopeTabProvider({ children }: { children: ReactNode }) {
 
   const createNewProject = useCallback(() => {
     const newTabId = createProjectTabId(tabs);
-    const offset = windows.length * 40;
-    const newWindowId = createWindowAt({
-      x: 120 + offset,
-      y: 80 + offset,
-    });
+    const focusedWindow = getFocusedWindow();
+    const newWindowId = createWindowAt(
+      {},
+      focusedWindow ? { cascadeFromWindowId: focusedWindow.id } : undefined,
+    );
 
     setTabs((current) => [
       ...current,
@@ -281,6 +304,8 @@ export function ScopeTabProvider({ children }: { children: ReactNode }) {
         label: 'Project',
         icon: 'project',
         windowId: newWindowId,
+        projectName: PROJECT_NAME,
+        emptyPlace: true,
       },
     ]);
     setActiveTabByWindow((current) => ({
@@ -289,7 +314,46 @@ export function ScopeTabProvider({ children }: { children: ReactNode }) {
     }));
     focusWindow(newWindowId);
     return newWindowId;
-  }, [tabs, windows.length, createWindowAt, focusWindow]);
+  }, [tabs, createWindowAt, focusWindow, getFocusedWindow]);
+
+  const openRecentProject = useCallback(
+    (projectId: RecentProjectId) => {
+      const existing = tabs.find((tab) => tab.recentProjectId === projectId);
+      if (existing) {
+        focusWindow(existing.windowId);
+        setActiveTabForWindow(existing.windowId, existing.id);
+        return existing.windowId;
+      }
+
+      const project = RECENT_PROJECTS[projectId];
+      const focusedWindow = getFocusedWindow();
+      const newWindowId = createWindowAt(
+        {},
+        focusedWindow ? { cascadeFromWindowId: focusedWindow.id } : undefined,
+      );
+      const tabId = getRecentProjectTabId(projectId);
+
+      setTabs((current) => [
+        ...current,
+        {
+          id: tabId,
+          label: 'Project',
+          icon: 'project',
+          windowId: newWindowId,
+          projectName: project.label,
+          recentProjectId: projectId,
+          emptyPlace: project.emptyPlace,
+        },
+      ]);
+      setActiveTabByWindow((current) => ({
+        ...current,
+        [newWindowId]: tabId,
+      }));
+      focusWindow(newWindowId);
+      return newWindowId;
+    },
+    [tabs, createWindowAt, focusWindow, getFocusedWindow, setActiveTabForWindow],
+  );
 
   const reorderTabInWindow = useCallback(
     (windowId: string, tabId: string, toIndex: number) => {
@@ -352,6 +416,7 @@ export function ScopeTabProvider({ children }: { children: ReactNode }) {
       reorderTabInWindow,
       closePrimaryWindow,
       createNewProject,
+      openRecentProject,
     }),
     [
       tabs,
@@ -366,6 +431,7 @@ export function ScopeTabProvider({ children }: { children: ReactNode }) {
       reorderTabInWindow,
       closePrimaryWindow,
       createNewProject,
+      openRecentProject,
     ],
   );
 
@@ -419,6 +485,13 @@ export function useScopeTabsForWindow(windowId: string) {
       reorderTabInWindow,
     ],
   );
+}
+
+export function isScopeTabEmptyPlace(
+  scopeTabId: string,
+  tabs: ScopeTab[],
+): boolean {
+  return tabs.find((tab) => tab.id === scopeTabId)?.emptyPlace ?? false;
 }
 
 export function useScopeTabLabel(scopeTabId?: string): string | null {

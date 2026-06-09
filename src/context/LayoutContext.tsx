@@ -13,7 +13,8 @@ import {
   shouldResetScopeTabLayout,
 } from '../data/initialLayout';
 import { useProjectTabBarEnabled } from './ProjectTabBarContext';
-import { useScopeTabs } from './ScopeTabContext';
+import { useRecentProjects } from './RecentProjectsContext';
+import { useScopeTabs, type ScopeTab } from './ScopeTabContext';
 import { cloneLayoutState } from '../utils/cloneLayoutState';
 import { getDefaultAuxiliaryWindowSize } from '../config/auxiliaryWindowSizes';
 import {
@@ -70,12 +71,14 @@ type LayoutAction =
       width?: number;
       height?: number;
       scopeTabId?: string;
+      monitorIndex?: number;
     }
   | {
       type: 'MOVE_FLOATING';
       floatingWindowId: string;
       x: number;
       y: number;
+      monitorIndex?: number;
     }
   | {
       type: 'RESIZE_FLOATING';
@@ -84,6 +87,7 @@ type LayoutAction =
       y: number;
       width: number;
       height: number;
+      monitorIndex?: number;
     }
   | {
       type: 'CLOSE_FLOATING';
@@ -109,6 +113,7 @@ type LayoutAction =
       width?: number;
       height?: number;
       scopeTabId?: string;
+      monitorIndex?: number;
     }
   | {
       type: 'DOCK_TAB_GROUP';
@@ -243,6 +248,9 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
                   y: action.y,
                   width: action.width ?? window.width,
                   height: action.height ?? window.height,
+                  ...(action.monitorIndex !== undefined
+                    ? { monitorIndex: action.monitorIndex }
+                    : {}),
                 }
               : window,
           ),
@@ -257,6 +265,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         width: action.width ?? getDefaultAuxiliaryWindowSize(action.panelId).width,
         height: action.height ?? getDefaultAuxiliaryWindowSize(action.panelId).height,
         scopeTabId: action.scopeTabId,
+        monitorIndex: action.monitorIndex,
       };
       return {
         root,
@@ -271,7 +280,14 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         ...state,
         floating: state.floating.map((window) =>
           window.id === action.floatingWindowId
-            ? { ...window, x: action.x, y: action.y }
+            ? {
+                ...window,
+                x: action.x,
+                y: action.y,
+                ...(action.monitorIndex !== undefined
+                  ? { monitorIndex: action.monitorIndex }
+                  : {}),
+              }
             : window,
         ),
       };
@@ -286,6 +302,9 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
                 y: action.y,
                 width: action.width,
                 height: action.height,
+                ...(action.monitorIndex !== undefined
+                  ? { monitorIndex: action.monitorIndex }
+                  : {}),
               }
             : window,
         ),
@@ -355,6 +374,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         height:
           action.height ?? getDefaultAuxiliaryWindowSize(group.activeTabId).height,
         scopeTabId: action.scopeTabId,
+        monitorIndex: action.monitorIndex,
       };
 
       return {
@@ -581,6 +601,7 @@ interface LayoutContextValue {
     y: number,
     width?: number,
     height?: number,
+    monitorIndex?: number,
   ) => void;
   floatTabGroup: (
     nodeId: string,
@@ -588,6 +609,7 @@ interface LayoutContextValue {
     y: number,
     width?: number,
     height?: number,
+    monitorIndex?: number,
   ) => void;
   dockTabGroup: (
     nodeId: string,
@@ -603,13 +625,19 @@ interface LayoutContextValue {
     nodeId: string,
     floatingWindowId: string,
   ) => void;
-  moveFloating: (floatingWindowId: string, x: number, y: number) => void;
+  moveFloating: (
+    floatingWindowId: string,
+    x: number,
+    y: number,
+    monitorIndex?: number,
+  ) => void;
   resizeFloating: (
     floatingWindowId: string,
     x: number,
     y: number,
     width: number,
     height: number,
+    monitorIndex?: number,
   ) => void;
   closeFloating: (floatingWindowId: string) => void;
   mergeFloatingTab: (
@@ -663,6 +691,18 @@ interface LayoutContextValue {
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
+function resolveInitialLayoutForTab(
+  tab: ScopeTab | undefined,
+  getLayoutForRecentProject: ReturnType<
+    typeof useRecentProjects
+  >['getLayoutForRecentProject'],
+): LayoutState {
+  if (tab?.recentProjectId) {
+    return getLayoutForRecentProject(tab.recentProjectId);
+  }
+  return getInitialLayoutForScopeTab(tab?.id ?? 'project-1');
+}
+
 interface LayoutProviderProps {
   windowId: string;
   children: ReactNode;
@@ -670,11 +710,17 @@ interface LayoutProviderProps {
 
 export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
   const projectTabBar = useProjectTabBarEnabled();
+  const { getLayoutForRecentProject, saveLayoutForRecentProject } =
+    useRecentProjects();
   const { tabs, getActiveTabForWindow } = useScopeTabs();
   const activeTabId = getActiveTabForWindow(windowId);
   const windowTabs = useMemo(
     () => tabs.filter((tab) => tab.windowId === windowId),
     [tabs, windowId],
+  );
+  const activeTab = useMemo(
+    () => windowTabs.find((tab) => tab.id === activeTabId),
+    [windowTabs, activeTabId],
   );
   const layoutScopeId = projectTabBar ? activeTabId : windowId;
   const [scopedLayouts, setScopedLayouts] = useState<
@@ -687,9 +733,9 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
   const state = useMemo(() => {
     return (
       scopedLayouts[layoutScopeId] ??
-      getInitialLayoutForScopeTab(activeTabId)
+      resolveInitialLayoutForTab(activeTab, getLayoutForRecentProject)
     );
-  }, [scopedLayouts, layoutScopeId, activeTabId]);
+  }, [scopedLayouts, layoutScopeId, activeTab, getLayoutForRecentProject]);
 
   const dispatchLayout = useCallback(
     (action: LayoutAction) => {
@@ -697,14 +743,16 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
         const scopeId = layoutScopeIdRef.current;
         const tabLayout =
           current[scopeId] ??
-          cloneLayoutState(getInitialLayoutForScopeTab(activeTabId));
+          cloneLayoutState(
+            resolveInitialLayoutForTab(activeTab, getLayoutForRecentProject),
+          );
         return {
           ...current,
           [scopeId]: layoutReducer(tabLayout, action),
         };
       });
     },
-    [activeTabId],
+    [activeTab, getLayoutForRecentProject],
   );
 
   useEffect(() => {
@@ -714,6 +762,16 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
 
       if (projectTabBar) {
         for (const tab of windowTabs) {
+          if (tab.recentProjectId) {
+            if (!next[tab.id]) {
+              next[tab.id] = cloneLayoutState(
+                getLayoutForRecentProject(tab.recentProjectId),
+              );
+              changed = true;
+            }
+            continue;
+          }
+
           const existing = next[tab.id];
           if (existing && !shouldResetScopeTabLayout(existing, tab.id)) {
             continue;
@@ -723,14 +781,26 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
         }
       } else if (!next[windowId]) {
         next[windowId] = cloneLayoutState(
-          getInitialLayoutForScopeTab(activeTabId),
+          resolveInitialLayoutForTab(activeTab, getLayoutForRecentProject),
         );
         changed = true;
       }
 
       return changed ? next : current;
     });
-  }, [projectTabBar, windowId, windowTabs, activeTabId]);
+  }, [
+    projectTabBar,
+    windowId,
+    windowTabs,
+    activeTab,
+    activeTabId,
+    getLayoutForRecentProject,
+  ]);
+
+  useEffect(() => {
+    if (!activeTab?.recentProjectId) return;
+    saveLayoutForRecentProject(activeTab.recentProjectId, state);
+  }, [state, activeTab?.recentProjectId, saveLayoutForRecentProject]);
 
   useEffect(() => {
     const openScopeIds = projectTabBar
@@ -811,6 +881,7 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
       y: number,
       width?: number,
       height?: number,
+      monitorIndex?: number,
     ) => {
       dispatchLayout({
         type: 'FLOAT_PANEL',
@@ -820,6 +891,7 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
         width,
         height,
         scopeTabId: projectTabBar ? activeTabId : undefined,
+        monitorIndex,
       });
     },
     [dispatchLayout, projectTabBar, activeTabId],
@@ -832,6 +904,7 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
       y: number,
       width?: number,
       height?: number,
+      monitorIndex?: number,
     ) => {
       dispatchLayout({
         type: 'FLOAT_TAB_GROUP',
@@ -841,6 +914,7 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
         width,
         height,
         scopeTabId: projectTabBar ? activeTabId : undefined,
+        monitorIndex,
       });
     },
     [dispatchLayout, projectTabBar, activeTabId],
@@ -877,8 +951,19 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
   );
 
   const moveFloatingAction = useCallback(
-    (floatingWindowId: string, x: number, y: number) => {
-      dispatchLayout({ type: 'MOVE_FLOATING', floatingWindowId, x, y });
+    (
+      floatingWindowId: string,
+      x: number,
+      y: number,
+      monitorIndex?: number,
+    ) => {
+      dispatchLayout({
+        type: 'MOVE_FLOATING',
+        floatingWindowId,
+        x,
+        y,
+        monitorIndex,
+      });
     },
     [dispatchLayout],
   );
@@ -890,6 +975,7 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
       y: number,
       width: number,
       height: number,
+      monitorIndex?: number,
     ) => {
       dispatchLayout({
         type: 'RESIZE_FLOATING',
@@ -898,6 +984,7 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
         y,
         width,
         height,
+        monitorIndex,
       });
     },
     [dispatchLayout],

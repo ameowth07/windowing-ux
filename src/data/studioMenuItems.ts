@@ -1,3 +1,4 @@
+import { RECENT_PROJECT_LIST } from '../config/recentProjects';
 import type { PanelId } from '../types/layout';
 
 export interface StudioMenuLeafItem {
@@ -143,3 +144,10 @@ export const FILE_MENU_ACTIONS: FileMenuAction[] = [
   { id: 'new-project', label: 'New Project' },
   { id: 'publish-as', label: 'Publish As' },
 ];
+
+export const FILE_MENU_RECENT_ITEMS: FileMenuAction[] = RECENT_PROJECT_LIST.map(
+  (project) => ({
+    id: project.menuActionId,
+    label: project.label,
+  }),
+);

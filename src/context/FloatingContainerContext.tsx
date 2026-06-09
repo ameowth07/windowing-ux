@@ -1,29 +1,39 @@
 import {
   createContext,
   useContext,
-  type RefObject,
   type ReactNode,
 } from 'react';
+import {
+  getMonitorIndexAtPoint,
+  getWindowContainerElement,
+} from '../utils/monitorSpace';
+import { useMonitorWindows } from './MonitorWindowsContext';
+
+interface FloatingContainerContextValue {
+  getContainer: (monitorIndex?: number) => HTMLElement | null;
+}
 
 const FloatingContainerContext =
-  createContext<RefObject<HTMLElement | null> | null>(null);
+  createContext<FloatingContainerContextValue | null>(null);
 
-export function FloatingContainerProvider({
-  containerRef,
-  children,
-}: {
-  containerRef: RefObject<HTMLElement | null>;
-  children: ReactNode;
-}) {
+export function FloatingContainerProvider({ children }: { children: ReactNode }) {
+  const { getContainerElement } = useMonitorWindows();
+
   return (
-    <FloatingContainerContext.Provider value={containerRef}>
+    <FloatingContainerContext.Provider
+      value={{
+        getContainer: (monitorIndex = 0) => getContainerElement(monitorIndex),
+      }}
+    >
       {children}
     </FloatingContainerContext.Provider>
   );
 }
 
-export function useFloatingContainer() {
-  return useContext(FloatingContainerContext);
+export function useFloatingContainer(monitorIndex = 0) {
+  const context = useContext(FloatingContainerContext);
+  const container = context?.getContainer(monitorIndex) ?? null;
+  return { current: container };
 }
 
 export function getFloatingPosition(
@@ -80,4 +90,24 @@ export function clampFloatingPosition(
     x: Math.min(Math.max(x, -width + minVisible), maxX),
     y: Math.min(Math.max(y, 0), maxY),
   };
+}
+
+export function resolveFloatingPlacement(
+  clientX: number,
+  clientY: number,
+  windowWidth: number,
+  windowHeight: number,
+  monitorCount: number,
+): { x: number; y: number; monitorIndex: number } {
+  const monitorIndex =
+    monitorCount > 1 ? getMonitorIndexAtPoint(clientX, clientY) : 0;
+  const container = getWindowContainerElement(monitorIndex, monitorCount);
+  const { x, y } = getFloatingPosition(
+    container,
+    clientX,
+    clientY,
+    windowWidth,
+    windowHeight,
+  );
+  return { x, y, monitorIndex };
 }

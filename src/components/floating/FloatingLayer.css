@@ -8,3 +8,9 @@
 .floating-layer > * {
   pointer-events: auto;
 }
+
+.floating-layer--portal {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+}

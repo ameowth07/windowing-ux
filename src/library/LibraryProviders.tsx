@@ -11,6 +11,7 @@ import {
   INITIAL_WINDOW_ID,
   PrimaryWindowsProvider,
 } from '../context/PrimaryWindowsContext';
+import { MonitorLayoutProvider } from '../context/MonitorLayoutContext';
 import { ScopeTabProvider } from '../context/ScopeTabContext';
 import { ShowDropzonesProvider } from '../context/ShowDropzonesContext';
 import type { LibraryProvider } from './types';
@@ -38,13 +39,15 @@ export function LibraryProviders({
 
   if (providers.includes('scopeTab')) {
     content = (
-      <PrimaryWindowsProvider>
-        <ScopeTabProvider>
-          <PrimaryWindowProvider windowId={INITIAL_WINDOW_ID}>
-            {content}
-          </PrimaryWindowProvider>
-        </ScopeTabProvider>
-      </PrimaryWindowsProvider>
+      <MonitorLayoutProvider>
+        <PrimaryWindowsProvider>
+          <ScopeTabProvider>
+            <PrimaryWindowProvider windowId={INITIAL_WINDOW_ID}>
+              {content}
+            </PrimaryWindowProvider>
+          </ScopeTabProvider>
+        </PrimaryWindowsProvider>
+      </MonitorLayoutProvider>
     );
   }
 

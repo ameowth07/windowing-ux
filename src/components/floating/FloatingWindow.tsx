@@ -32,6 +32,7 @@ interface FloatingWindowProps {
   height: number;
   scopeTabId?: string;
   isMergeTarget?: boolean;
+  dragOverlay?: boolean;
 }
 
 export function FloatingWindow({
@@ -44,6 +45,7 @@ export function FloatingWindow({
   height,
   scopeTabId,
   isMergeTarget = false,
+  dragOverlay = false,
 }: FloatingWindowProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
@@ -99,6 +101,7 @@ export function FloatingWindow({
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `float-window-${id}`,
     data: dragData,
+    disabled: dragOverlay,
   });
 
   const bodyHoverData: FloatingBodyHoverData = {
@@ -108,7 +111,7 @@ export function FloatingWindow({
   const { setNodeRef: setBodyRef } = useDroppable({
     id: `floating-body-${id}`,
     data: bodyHoverData,
-    disabled: isDropBlocked,
+    disabled: isDropBlocked || dragOverlay,
   });
 
   const draggedPanelId = (active?.data.current as { panelId?: PanelId } | undefined)
@@ -250,7 +253,9 @@ export function FloatingWindow({
           <PanelContent panelId={activeTabId} />
         </div>
       </div>
-      <FloatingWindowResizeHandles onResizeStart={startResize} />
+      <FloatingWindowResizeHandles
+        onResizeStart={dragOverlay ? undefined : startResize}
+      />
     </div>
   );
 }

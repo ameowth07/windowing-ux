@@ -1,0 +1,94 @@
+.gallery-desktop {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.gallery-desktop__surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: #0f1729;
+}
+
+.gallery-desktop__wallpaper {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(0, 120, 212, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 20% 80%, rgba(181, 130, 247, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 75%, rgba(0, 180, 160, 0.25) 0%, transparent 50%),
+    linear-gradient(135deg, #0c1929 0%, #1b2a4a 35%, #2d1b4e 70%, #0f1729 100%);
+}
+
+.gallery-desktop__wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.gallery-desktop__icons {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.gallery-desktop__icons .desktop-icon {
+  width: 64px;
+  padding: 6px 2px;
+  pointer-events: auto;
+}
+
+.gallery-desktop__icons .desktop-icon__glyph {
+  width: 32px;
+  height: 32px;
+}
+
+.gallery-desktop__icons .desktop-icon__label {
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.gallery-desktop__windows {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.gallery-desktop__surface:has(.win-taskbar--embedded) .gallery-desktop__windows {
+  bottom: var(--win-taskbar-height);
+}
+
+.gallery-desktop__label {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 1;
+  font: 400 10px/12px 'Segoe UI', system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+}
+
+.gallery-desktop--drop-target .gallery-desktop__surface {
+  outline: 2px solid rgba(0, 120, 212, 0.75);
+  outline-offset: -2px;
+}
