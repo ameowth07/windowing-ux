@@ -13,6 +13,7 @@ import {
   shouldResetScopeTabLayout,
 } from '../data/initialLayout';
 import { useProjectTabBarEnabled } from './ProjectTabBarContext';
+import { useStudio2026Enabled } from './Studio2026Context';
 import { useFloatingPanelDockingEnabled } from './FloatingPanelDockingContext';
 import { useRecentProjects } from './RecentProjectsContext';
 import { useScopeTabs, type ScopeTab } from './ScopeTabContext';
@@ -956,6 +957,7 @@ interface LayoutProviderProps {
 
 export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
   const projectTabBar = useProjectTabBarEnabled();
+  const studio2026 = useStudio2026Enabled();
   const floatingPanelDockingEnabled = useFloatingPanelDockingEnabled();
   const { getLayoutForRecentProject, saveLayoutForRecentProject } =
     useRecentProjects();
@@ -1049,6 +1051,37 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
     activeTabId,
     getLayoutForRecentProject,
   ]);
+
+  useEffect(() => {
+    setScopedLayouts((current) => {
+      let changed = false;
+      const next = { ...current };
+
+      for (const tab of windowTabs) {
+        if (!tab.recentProjectId) continue;
+        next[tab.id] = cloneLayoutState(
+          getLayoutForRecentProject(tab.recentProjectId),
+        );
+        changed = true;
+      }
+
+      if (projectTabBar || !windowTabs.some((tab) => tab.recentProjectId)) {
+        return changed ? next : current;
+      }
+
+      const activeRecentTab = windowTabs.find(
+        (tab) => tab.id === activeTabId && tab.recentProjectId,
+      );
+      if (activeRecentTab?.recentProjectId) {
+        next[windowId] = cloneLayoutState(
+          getLayoutForRecentProject(activeRecentTab.recentProjectId),
+        );
+        changed = true;
+      }
+
+      return changed ? next : current;
+    });
+  }, [studio2026, projectTabBar, windowId, windowTabs, activeTabId, getLayoutForRecentProject]);
 
   useEffect(() => {
     if (!activeTab?.recentProjectId) return;

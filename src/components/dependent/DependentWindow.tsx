@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import { useMonitorLayout } from '../../context/MonitorLayoutContext';
 import { useMonitorWindows } from '../../context/MonitorWindowsContext';
 import { usePrimaryWindowIdOptional } from '../../context/PrimaryWindowContext';
+import { useProjectName } from '../../context/AppWindowContext';
 import { usePrimaryWindows } from '../../context/PrimaryWindowsContext';
+import { useStudio2026Enabled } from '../../context/Studio2026Context';
+import { useRegisterDialogModal } from '../../context/DialogModalContext';
 import { getWindowContainerElement } from '../../utils/monitorSpace';
 import { AuxiliaryWindowTitleBar } from './AuxiliaryWindowTitleBar';
 import {
@@ -41,6 +44,9 @@ export function DependentWindow({
   footer,
 }: DependentWindowProps) {
   const windowId = usePrimaryWindowIdOptional();
+  const placeName = useProjectName();
+  const studio2026 = useStudio2026Enabled();
+  const displayTitle = studio2026 ? placeName : title;
   const { getWindow } = usePrimaryWindows();
   const { monitorCount } = useMonitorLayout();
   const { getContainerElement } = useMonitorWindows();
@@ -86,7 +92,10 @@ export function DependentWindow({
     width,
     height,
     initialPosition,
+    enabled: open && !modal,
   });
+
+  useRegisterDialogModal(open && modal);
 
   useEffect(() => {
     if (!open) return;
@@ -120,12 +129,12 @@ export function DependentWindow({
         style={{ left: position.x, top: position.y, width, height }}
         role="dialog"
         aria-modal={modal || undefined}
-        aria-labelledby={`dependent-window-title-${title.replace(/\s+/g, '-')}`}
+        aria-labelledby={`dependent-window-title-${displayTitle.replace(/\s+/g, '-')}`}
       >
         <AuxiliaryWindowTitleBar
-          title={title}
+          title={displayTitle}
           onClose={onClose}
-          onTitleBarPointerDown={onTitleBarPointerDown}
+          onTitleBarPointerDown={modal ? undefined : onTitleBarPointerDown}
         />
         <div className="dependent-window__body">{children}</div>
         {footer ? <div className="dependent-window__footer">{footer}</div> : null}

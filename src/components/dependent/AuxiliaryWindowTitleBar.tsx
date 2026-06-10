@@ -16,7 +16,12 @@ export function AuxiliaryWindowTitleBar({
 }: AuxiliaryWindowTitleBarProps) {
   return (
     <div
-      className="aux-window-title-bar"
+      className={[
+        'aux-window-title-bar',
+        onTitleBarPointerDown ? '' : 'aux-window-title-bar--static',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onPointerDown={onTitleBarPointerDown}
     >
       <div className="aux-window-title-bar__title">{title}</div>

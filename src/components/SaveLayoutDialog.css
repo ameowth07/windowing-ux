@@ -1,31 +1,7 @@
-.save-layout-dialog {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  pointer-events: none;
-}
-
-.save-layout-dialog--in-window {
-  position: absolute;
-  z-index: 50;
-}
-
-.save-layout-dialog__backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: auto;
-}
-
-.save-layout-dialog--in-window .save-layout-dialog__backdrop {
-  top: var(--app-bar-height);
-}
-
 .save-layout-dialog__panel {
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: 1;
   transform: translate(-50%, -50%);
   pointer-events: auto;
   width: 100%;
@@ -36,6 +12,15 @@
   background: var(--bg-surface-100);
   box-shadow: var(--shadow-transient-high);
   overflow: clip;
+}
+
+.save-layout-dialog__panel--in-window {
+  z-index: 3;
+}
+
+.save-layout-dialog__panel:not(.save-layout-dialog__panel--in-window) {
+  position: fixed;
+  z-index: 10001;
 }
 
 .save-layout-dialog__close {

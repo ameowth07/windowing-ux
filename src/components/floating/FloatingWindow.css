@@ -45,6 +45,14 @@
   cursor: grabbing;
 }
 
+.floating-window__app-bar--locked {
+  cursor: default;
+}
+
+.floating-window__app-bar--locked:active {
+  cursor: default;
+}
+
 .floating-window__title {
   padding: 0 8px 0 12px;
   font: var(--font-title-small);

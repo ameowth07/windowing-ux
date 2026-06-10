@@ -15,6 +15,14 @@
   cursor: grabbing;
 }
 
+.aux-window-title-bar--static {
+  cursor: default;
+}
+
+.aux-window-title-bar--static:active {
+  cursor: default;
+}
+
 .aux-window-title-bar__title {
   padding: 0 8px 0 12px;
   font: var(--font-title-small);

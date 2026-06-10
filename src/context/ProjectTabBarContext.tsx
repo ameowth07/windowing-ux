@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { DEFAULT_PROJECT_TAB_BAR_ENABLED } from '../config/projectTabBar';
+import { useStudio2026Enabled } from './Studio2026Context';
 
 const STORAGE_KEY = 'studio-project-tab-bar-enabled';
 
@@ -61,6 +62,8 @@ export function useProjectTabBar() {
 }
 
 export function useProjectTabBarEnabled(override?: boolean): boolean {
+  const studio2026 = useStudio2026Enabled();
+  if (studio2026) return false;
   const context = useContext(ProjectTabBarContext);
   if (override !== undefined) return override;
   return context?.enabled ?? DEFAULT_PROJECT_TAB_BAR_ENABLED;

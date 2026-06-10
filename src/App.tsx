@@ -6,12 +6,14 @@ import { EdgeDropZoneDelayProvider } from './context/EdgeDropZoneDelayContext';
 import { MonitorLayoutProvider } from './context/MonitorLayoutContext';
 import { ProjectTabBarProvider } from './context/ProjectTabBarContext';
 import { EnforceDocumentRegionProvider } from './context/EnforceDocumentRegionContext';
+import { Studio2026Provider } from './context/Studio2026Context';
 import { FloatingPanelDockingProvider } from './context/FloatingPanelDockingContext';
 import { SkeletonContentProvider } from './context/SkeletonContentContext';
 import { RecentProjectsProvider } from './context/RecentProjectsContext';
 import { SavedLayoutsProvider } from './context/SavedLayoutsContext';
 import { ScopeTabProvider } from './context/ScopeTabContext';
 import { ShowDropzonesProvider } from './context/ShowDropzonesContext';
+import { DialogModalProvider } from './context/DialogModalContext';
 import { PrimaryWindowsProvider } from './context/PrimaryWindowsContext';
 
 function App() {
@@ -20,25 +22,29 @@ function App() {
       <SavedLayoutsProvider>
       <SkeletonContentProvider>
         <EnforceDocumentRegionProvider>
+        <Studio2026Provider>
         <FloatingPanelDockingProvider>
         <ProjectTabBarProvider>
           <MonitorLayoutProvider>
             <EdgeDropZoneDelayProvider>
               <AuxiliaryWindowSizeProvider>
                 <ShowDropzonesProvider>
-                  <PrimaryWindowsProvider>
-                    <RecentProjectsProvider>
-                    <ScopeTabProvider>
-                      <DesktopEnvironment />
-                    </ScopeTabProvider>
-                    </RecentProjectsProvider>
-                  </PrimaryWindowsProvider>
+                  <DialogModalProvider>
+                    <PrimaryWindowsProvider>
+                      <RecentProjectsProvider>
+                      <ScopeTabProvider>
+                        <DesktopEnvironment />
+                      </ScopeTabProvider>
+                      </RecentProjectsProvider>
+                    </PrimaryWindowsProvider>
+                  </DialogModalProvider>
                 </ShowDropzonesProvider>
               </AuxiliaryWindowSizeProvider>
             </EdgeDropZoneDelayProvider>
           </MonitorLayoutProvider>
         </ProjectTabBarProvider>
         </FloatingPanelDockingProvider>
+        </Studio2026Provider>
         </EnforceDocumentRegionProvider>
       </SkeletonContentProvider>
       </SavedLayoutsProvider>

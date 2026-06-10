@@ -10,9 +10,10 @@ import {
   DEFAULT_WINDOW_SIZE_PRESET,
   type WindowSizePreset,
 } from '../config/windowSizes';
-import { PROJECT_NAME } from '../config/project';
+import { PLACE_NAME, PROJECT_NAME } from '../config/project';
 import { usePrimaryWindowIdOptional } from './PrimaryWindowContext';
 import { useScopeTabsOptional } from './ScopeTabContext';
+import { useStudio2026Enabled } from './Studio2026Context';
 
 interface AppWindowContextValue {
   projectName: string;
@@ -50,6 +51,7 @@ export function useAppWindow() {
 }
 
 export function useProjectName() {
+  const studio2026 = useStudio2026Enabled();
   const context = useContext(AppWindowContext);
   const windowId = usePrimaryWindowIdOptional();
   const scopeTabs = useScopeTabsOptional();
@@ -58,8 +60,15 @@ export function useProjectName() {
     const activeTabId = scopeTabs.getActiveTabForWindow(windowId);
     const activeTab = scopeTabs.tabs.find((tab) => tab.id === activeTabId);
     if (activeTab?.projectName) {
+      if (studio2026 && activeTab.projectName === PROJECT_NAME) {
+        return PLACE_NAME;
+      }
       return activeTab.projectName;
     }
+  }
+
+  if (studio2026) {
+    return PLACE_NAME;
   }
 
   return context?.projectName ?? PROJECT_NAME;

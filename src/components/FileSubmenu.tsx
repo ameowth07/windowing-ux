@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import {
-  FILE_MENU_ACTIONS,
   FILE_MENU_RECENT_ITEMS,
   FILE_MENU_SETTINGS_ACTIONS,
+  getFileMenuActions,
 } from '../data/studioMenuItems';
+import { useStudio2026Enabled } from '../context/Studio2026Context';
 import { TransientSubmenuPortal } from './layout/TransientMenuPortal';
 import './StudioMenu.css';
 
@@ -30,6 +31,11 @@ export function FileSubmenu({
   onPointerEnter,
   onPointerLeave,
 }: FileSubmenuProps) {
+  const studio2026 = useStudio2026Enabled();
+  const fileMenuActions = useMemo(
+    () => getFileMenuActions(studio2026),
+    [studio2026],
+  );
   const localRecentAnchorRef = useRef<HTMLButtonElement>(null);
   const localRecentPortalRef = useRef<HTMLDivElement>(null);
   const recentRef = recentAnchorRef ?? localRecentAnchorRef;
@@ -90,7 +96,7 @@ export function FileSubmenu({
         onPointerLeave={onPointerLeave}
       >
         <div className="studio-menu studio-menu--auto" role="menu">
-          {FILE_MENU_ACTIONS.map((action) => (
+          {fileMenuActions.map((action) => (
             <button
               key={action.id}
               type="button"

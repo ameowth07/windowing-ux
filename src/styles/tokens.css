@@ -66,6 +66,7 @@
   --input-min-height: 32px;
   --input-padding: 8px;
   --input-content-gap: 6px;
+  --dialog-scrim: rgba(4, 4, 8, 0.45);
   --shadow-window: 0 0 0 1px var(--stroke-emphasis), 0 32px 64px rgba(0, 0, 0, 0.24);
   --shadow-transient-low:
     0 2px 2px -0.5px rgba(4, 4, 8, 0.25),

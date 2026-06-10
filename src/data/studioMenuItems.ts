@@ -13,21 +13,17 @@ export interface StudioMenuCategory {
   items: StudioMenuLeafItem[];
 }
 
-function leaf(id: string, label: string): StudioMenuLeafItem {
-  return { id, label, panelId: id };
-}
-
 export const STUDIO_MENU_CATEGORIES: StudioMenuCategory[] = [
   {
     id: 'general',
     label: 'General',
     items: [
+      leaf('asset-manager', 'Asset Manager'),
       leaf('assistant', 'Assistant'),
       leaf('explorer', 'Explorer'),
       leaf('output', 'Output'),
       leaf('properties', 'Properties'),
       leaf('toolbox', 'Toolbox'),
-      leaf('asset-manager', 'Asset Manager'),
     ],
   },
   {
@@ -120,6 +116,33 @@ export const STUDIO_MENU_CATEGORIES: StudioMenuCategory[] = [
   },
 ];
 
+function leaf(id: string, label: string): StudioMenuLeafItem {
+  return { id, label, panelId: id };
+}
+
+export function getAddTabMenuCategories(studio2026: boolean): StudioMenuCategory[] {
+  if (!studio2026) {
+    return STUDIO_MENU_CATEGORIES;
+  }
+
+  return STUDIO_MENU_CATEGORIES.map((category) => {
+    if (category.id !== 'general') {
+      return category;
+    }
+
+    if (category.items.some((item) => item.panelId === 'viewport')) {
+      return category;
+    }
+
+    return {
+      ...category,
+      items: [...category.items, leaf('viewport', 'Viewport')].sort((a, b) =>
+        a.label.localeCompare(b.label),
+      ),
+    };
+  });
+}
+
 export interface StudioMenuItem {
   id: string;
   label: string;
@@ -145,6 +168,22 @@ export const FILE_MENU_ACTIONS: FileMenuAction[] = [
   { id: 'save-project', label: 'Save Project' },
 ];
 
+export function getFileMenuActions(studio2026: boolean): FileMenuAction[] {
+  if (!studio2026) {
+    return FILE_MENU_ACTIONS;
+  }
+
+  return FILE_MENU_ACTIONS.map((action) => {
+    if (action.id === 'new-project') {
+      return { ...action, label: 'New Place' };
+    }
+    if (action.id === 'save-project') {
+      return { ...action, label: 'Save Place' };
+    }
+    return action;
+  });
+}
+
 export const FILE_MENU_RECENT_ITEMS: FileMenuAction[] = RECENT_PROJECT_LIST.map(
   (project) => ({
     id: project.menuActionId,
@@ -153,5 +192,5 @@ export const FILE_MENU_RECENT_ITEMS: FileMenuAction[] = RECENT_PROJECT_LIST.map(
 );
 
 export const FILE_MENU_SETTINGS_ACTIONS: FileMenuAction[] = [
-  { id: 'project-settings', label: 'Project Settings' },
+  { id: 'project-settings', label: 'Studio Settings' },
 ];

@@ -22,6 +22,7 @@ import { useProjectTabBar } from '../../context/ProjectTabBarContext';
 import { useSkeletonContent } from '../../context/SkeletonContentContext';
 import { useEnforceDocumentRegion } from '../../context/EnforceDocumentRegionContext';
 import { useFloatingPanelDocking } from '../../context/FloatingPanelDockingContext';
+import { useStudio2026 } from '../../context/Studio2026Context';
 import type { PanelId } from '../../types/layout';
 import './DesktopSettingsMenu.css';
 
@@ -35,6 +36,7 @@ export function DesktopSettingsMenu() {
     useEnforceDocumentRegion();
   const { enabled: floatingPanelDocking, setEnabled: setFloatingPanelDocking } =
     useFloatingPanelDocking();
+  const { enabled: studio2026, setEnabled: setStudio2026 } = useStudio2026();
   const { getSize, setSize } = useAuxiliaryWindowSize();
   const { monitorCount, setMonitorCount } = useMonitorLayout();
   const [open, setOpen] = useState(false);
@@ -75,6 +77,15 @@ export function DesktopSettingsMenu() {
       </button>
       {open ? (
         <div className="desktop-settings__menu" role="menu">
+          <label className="desktop-settings__toggle">
+            <input
+              type="checkbox"
+              checked={studio2026}
+              onChange={(event) => setStudio2026(event.target.checked)}
+            />
+            <span>Use current Studio 2026</span>
+          </label>
+          <div className="desktop-settings__divider" />
           <div className="desktop-settings__heading">App window size</div>
           {WINDOW_SIZE_PRESET_ORDER.map((preset) => {
             const { label, width, height } = WINDOW_SIZE_PRESETS[preset];

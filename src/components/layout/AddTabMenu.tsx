@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { STUDIO_MENU_CATEGORIES } from '../../data/studioMenuItems';
+import { getAddTabMenuCategories } from '../../data/studioMenuItems';
+import { isAddTabMenuItemOpen, resolveAddTabMenuPanelId } from '../../config/studio2026';
+import { useStudio2026Enabled } from '../../context/Studio2026Context';
 import { useLayout } from '../../context/LayoutContext';
 import type { PanelId } from '../../types/layout';
 import { TransientSubmenuPortal } from './TransientMenuPortal';
@@ -24,6 +26,11 @@ export function AddTabMenu({
   onClose,
   floatingMode = false,
 }: AddTabMenuProps) {
+  const studio2026 = useStudio2026Enabled();
+  const menuCategories = useMemo(
+    () => getAddTabMenuCategories(studio2026),
+    [studio2026],
+  );
   const { dockedPanelIds, state } = useLayout();
   const openPanelIds = useMemo(() => {
     const ids = new Set(dockedPanelIds);
@@ -90,7 +97,7 @@ export function AddTabMenu({
     };
   }, []);
 
-  const activeCategory = STUDIO_MENU_CATEGORIES.find(
+  const activeCategory = menuCategories.find(
     (category) => category.id === activeCategoryId,
   );
 
@@ -105,7 +112,7 @@ export function AddTabMenu({
         onPointerLeave={scheduleCategoryClose}
       >
         <div className="studio-menu" role="menu">
-          {STUDIO_MENU_CATEGORIES.map((category) => (
+          {menuCategories.map((category) => (
             <button
               key={category.id}
               ref={(node) => {
@@ -153,7 +160,9 @@ export function AddTabMenu({
         {activeCategory ? (
           <div className="studio-menu studio-menu--auto" role="menu">
             {activeCategory.items.map((item) => {
-              const isChecked = !floatingMode && openPanelIds.has(item.panelId);
+              const isChecked =
+                !floatingMode &&
+                isAddTabMenuItemOpen(item.panelId, openPanelIds, studio2026);
 
               return (
                 <button
@@ -165,7 +174,7 @@ export function AddTabMenu({
                   aria-disabled={isChecked}
                   onClick={() => {
                     if (isChecked) return;
-                    onAddPanel(item.panelId);
+                    onAddPanel(resolveAddTabMenuPanelId(item.panelId, studio2026));
                     onClose();
                   }}
                 >

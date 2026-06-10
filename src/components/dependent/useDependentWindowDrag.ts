@@ -7,6 +7,7 @@ interface UseDependentWindowDragOptions {
   width: number;
   height: number;
   initialPosition: { x: number; y: number } | null;
+  enabled?: boolean;
 }
 
 export function useDependentWindowDrag({
@@ -15,6 +16,7 @@ export function useDependentWindowDrag({
   width,
   height,
   initialPosition,
+  enabled = true,
 }: UseDependentWindowDragOptions) {
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
@@ -28,7 +30,7 @@ export function useDependentWindowDrag({
 
   const onTitleBarPointerDown: PointerEventHandler<HTMLDivElement> = useCallback(
     (event) => {
-      if (event.button !== 0 || !container || !position) return;
+      if (!enabled || event.button !== 0 || !container || !position) return;
 
       event.preventDefault();
       const startX = event.clientX;
@@ -55,7 +57,7 @@ export function useDependentWindowDrag({
       window.addEventListener('pointermove', handlePointerMove);
       window.addEventListener('pointerup', handlePointerUp);
     },
-    [container, height, position, width],
+    [container, enabled, height, position, width],
   );
 
   return { position, onTitleBarPointerDown };

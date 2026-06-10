@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCollapsedTabBar } from '../../context/CollapsedTabBarContext';
 import { useEnforceDocumentRegionEnabled } from '../../context/EnforceDocumentRegionContext';
+import { useStudio2026Enabled } from '../../context/Studio2026Context';
 import { useLayout } from '../../context/LayoutContext';
-import { useFloatingLayoutWindowId } from '../../context/FloatingLayoutContext';
 import type { PanelId } from '../../types/layout';
 import { getPanelGroupType } from '../../utils/panelGrouping';
 import { AddDocumentMenu } from './AddDocumentMenu';
@@ -43,11 +43,10 @@ export function PanelTabBarMenu({
     addPanelToFloatingWindow,
     addDocumentToTabGroup,
     addDocumentToFloatingWindow,
-    closeFloating,
   } = useLayout();
   const { collapseTabBar } = useCollapsedTabBar();
-  const floatingLayoutWindowId = useFloatingLayoutWindowId();
   const enforceDocumentRegion = useEnforceDocumentRegionEnabled();
+  const studio2026 = useStudio2026Enabled();
   const panelGroupType = getPanelGroupType(panelIds);
   const addTabDisabled =
     enforceDocumentRegion && panelGroupType !== 'auxiliary';
@@ -154,11 +153,6 @@ export function PanelTabBarMenu({
     closeMenu();
   };
 
-  const handleDock = () => {
-    closeFloating(floatingLayoutWindowId ?? nodeId);
-    closeMenu();
-  };
-
   const handleCollapseTab = () => {
     collapseTabBar(nodeId);
     closeMenu();
@@ -225,17 +219,6 @@ export function PanelTabBarMenu({
           >
             <span className="studio-menu__item-label">Close Tab</span>
           </button>
-          {variant === 'floating' || floatingLayoutWindowId ? (
-            <button
-              type="button"
-              role="menuitem"
-              className="studio-menu__item"
-              onMouseEnter={() => setActiveSubmenu(null)}
-              onClick={handleDock}
-            >
-              <span className="studio-menu__item-label">Dock</span>
-            </button>
-          ) : null}
           <button
             type="button"
             role="menuitem"
@@ -268,28 +251,30 @@ export function PanelTabBarMenu({
               <ChevronRightIcon />
             </span>
           </button>
-          <button
-            ref={addDocumentRef}
-            type="button"
-            role="menuitem"
-            className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
-            aria-haspopup="menu"
-            aria-expanded={activeSubmenu === 'add-document'}
-            aria-disabled={addDocumentDisabled}
-            disabled={addDocumentDisabled}
-            onMouseEnter={() => openSubmenu('add-document')}
-            onMouseLeave={scheduleSubmenuClose}
-            onFocus={() => openSubmenu('add-document')}
-            onClick={(event) => {
-              event.stopPropagation();
-              openSubmenu('add-document');
-            }}
-          >
-            <span className="studio-menu__item-label">Add New Document</span>
-            <span className="studio-menu__item-chevron" aria-hidden="true">
-              <ChevronRightIcon />
-            </span>
-          </button>
+          {!studio2026 ? (
+            <button
+              ref={addDocumentRef}
+              type="button"
+              role="menuitem"
+              className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={activeSubmenu === 'add-document'}
+              aria-disabled={addDocumentDisabled}
+              disabled={addDocumentDisabled}
+              onMouseEnter={() => openSubmenu('add-document')}
+              onMouseLeave={scheduleSubmenuClose}
+              onFocus={() => openSubmenu('add-document')}
+              onClick={(event) => {
+                event.stopPropagation();
+                openSubmenu('add-document');
+              }}
+            >
+              <span className="studio-menu__item-label">Add New Document</span>
+              <span className="studio-menu__item-chevron" aria-hidden="true">
+                <ChevronRightIcon />
+              </span>
+            </button>
+          ) : null}
         </div>
       </TransientMenuPortal>
 
@@ -303,7 +288,12 @@ export function PanelTabBarMenu({
       />
 
       <AddDocumentMenu
-        open={open && activeSubmenu === 'add-document' && !addDocumentDisabled}
+        open={
+          !studio2026 &&
+          open &&
+          activeSubmenu === 'add-document' &&
+          !addDocumentDisabled
+        }
         anchorRef={addDocumentRef}
         portalRef={addDocumentMenuRef}
         onAddPanel={handleAddDocument}

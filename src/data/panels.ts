@@ -63,7 +63,7 @@ const AUXILIARY_PANELS: Record<string, PanelDefinition> = {
   viewport: { id: 'viewport', title: 'Viewport', panelType: 'auxiliary', skeleton: true },
   'project-settings': {
     id: 'project-settings',
-    title: 'Project Settings',
+    title: 'Studio Settings',
     panelType: 'auxiliary',
     skeleton: true,
   },

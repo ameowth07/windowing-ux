@@ -6,11 +6,14 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  RECENT_PROJECTS,
+  adaptRecentLayoutForStudio2026,
+  createRecentProjectSeedLayout,
+  getRecentProjectStorageKey,
   type RecentProjectId,
 } from '../config/recentProjects';
 import type { LayoutState } from '../types/layout';
 import { cloneLayoutState } from '../utils/cloneLayoutState';
+import { useStudio2026Enabled } from './Studio2026Context';
 
 interface RecentProjectsContextValue {
   getLayoutForRecentProject: (projectId: RecentProjectId) => LayoutState;
@@ -24,37 +27,51 @@ const RecentProjectsContext = createContext<RecentProjectsContextValue | null>(
   null,
 );
 
-function storageKey(projectId: RecentProjectId) {
-  return `studio-recent-project-layout:${projectId}`;
-}
-
-function readStoredLayout(projectId: RecentProjectId): LayoutState | null {
+function readStoredLayout(
+  projectId: RecentProjectId,
+  studio2026: boolean,
+): LayoutState | null {
   try {
-    const raw = localStorage.getItem(storageKey(projectId));
+    const raw = localStorage.getItem(
+      getRecentProjectStorageKey(projectId, studio2026),
+    );
     if (!raw) return null;
-    return cloneLayoutState(JSON.parse(raw) as LayoutState);
+    const parsed = cloneLayoutState(JSON.parse(raw) as LayoutState);
+    return studio2026 ? adaptRecentLayoutForStudio2026(parsed) : parsed;
   } catch {
     return null;
   }
 }
 
-function writeStoredLayout(projectId: RecentProjectId, state: LayoutState) {
-  localStorage.setItem(storageKey(projectId), JSON.stringify(state));
+function writeStoredLayout(
+  projectId: RecentProjectId,
+  studio2026: boolean,
+  state: LayoutState,
+) {
+  localStorage.setItem(
+    getRecentProjectStorageKey(projectId, studio2026),
+    JSON.stringify(state),
+  );
 }
 
 export function RecentProjectsProvider({ children }: { children: ReactNode }) {
-  const getLayoutForRecentProject = useCallback((projectId: RecentProjectId) => {
-    return (
-      readStoredLayout(projectId) ??
-      cloneLayoutState(RECENT_PROJECTS[projectId].createSeedLayout())
-    );
-  }, []);
+  const studio2026 = useStudio2026Enabled();
+
+  const getLayoutForRecentProject = useCallback(
+    (projectId: RecentProjectId) => {
+      return (
+        readStoredLayout(projectId, studio2026) ??
+        cloneLayoutState(createRecentProjectSeedLayout(projectId, studio2026))
+      );
+    },
+    [studio2026],
+  );
 
   const saveLayoutForRecentProject = useCallback(
     (projectId: RecentProjectId, state: LayoutState) => {
-      writeStoredLayout(projectId, cloneLayoutState(state));
+      writeStoredLayout(projectId, studio2026, cloneLayoutState(state));
     },
-    [],
+    [studio2026],
   );
 
   const value = useMemo(

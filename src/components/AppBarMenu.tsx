@@ -12,6 +12,7 @@ import { useLayout } from '../context/LayoutContext';
 import { useSavedLayouts } from '../context/SavedLayoutsContext';
 import { getRecentProjectIdForMenuAction } from '../config/recentProjects';
 import { useScopeTabs } from '../context/ScopeTabContext';
+import { useStudio2026Enabled } from '../context/Studio2026Context';
 import { collectAllPanelIds } from '../model/layoutOperations';
 import type { PanelId } from '../types/layout';
 import { cloneLayoutState } from '../utils/cloneLayoutState';
@@ -41,6 +42,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   const { createNewProject, openRecentProject } = useScopeTabs();
   const { floatPanel, state, setLayoutState } = useLayout();
   const { getSize: getAuxiliaryWindowSize } = useAuxiliaryWindowSize();
+  const studio2026 = useStudio2026Enabled();
   const { savedLayouts, saveLayout } = useSavedLayouts();
   const windowId = usePrimaryWindowId();
   const { getWindow } = usePrimaryWindows();
@@ -404,26 +406,28 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
               <ChevronRightIcon />
             </span>
           </button>
-          <button
-            ref={addDocumentRef}
-            type="button"
-            role="menuitem"
-            className={`studio-menu__item studio-menu__item--submenu ${windowSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
-            aria-haspopup="menu"
-            aria-expanded={windowSubmenu === 'add-document'}
-            onMouseEnter={() => openWindowSubmenu('add-document')}
-            onMouseLeave={scheduleWindowSubmenuClose}
-            onFocus={() => openWindowSubmenu('add-document')}
-            onClick={(event) => {
-              event.stopPropagation();
-              openWindowSubmenu('add-document');
-            }}
-          >
-            <span className="studio-menu__item-label">Add New Document</span>
-            <span className="studio-menu__item-chevron" aria-hidden="true">
-              <ChevronRightIcon />
-            </span>
-          </button>
+          {!studio2026 ? (
+            <button
+              ref={addDocumentRef}
+              type="button"
+              role="menuitem"
+              className={`studio-menu__item studio-menu__item--submenu ${windowSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={windowSubmenu === 'add-document'}
+              onMouseEnter={() => openWindowSubmenu('add-document')}
+              onMouseLeave={scheduleWindowSubmenuClose}
+              onFocus={() => openWindowSubmenu('add-document')}
+              onClick={(event) => {
+                event.stopPropagation();
+                openWindowSubmenu('add-document');
+              }}
+            >
+              <span className="studio-menu__item-label">Add New Document</span>
+              <span className="studio-menu__item-chevron" aria-hidden="true">
+                <ChevronRightIcon />
+              </span>
+            </button>
+          ) : null}
           <div className="studio-menu__divider" role="separator" />
           <button
             type="button"
@@ -468,7 +472,12 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
       />
 
       <AddDocumentMenu
-        open={open && activeSubmenu === 'window' && windowSubmenu === 'add-document'}
+        open={
+          !studio2026 &&
+          open &&
+          activeSubmenu === 'window' &&
+          windowSubmenu === 'add-document'
+        }
         anchorRef={addDocumentRef}
         portalRef={addDocumentMenuRef}
         onAddPanel={handleAddDocument}
