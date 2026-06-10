@@ -21,6 +21,7 @@ export const DEFAULT_AUXILIARY_WINDOW_SIZES: Record<PanelId, AuxiliaryWindowSize
   explorer: { width: 320, height: 520 },
   properties: { width: 300, height: 520 },
   viewport: { width: 800, height: 600 },
+  'project-settings': { width: 480, height: 560 },
 };
 
 export const AUXILIARY_WINDOW_SIZE_PANEL_ORDER: PanelId[] = [
@@ -32,6 +33,7 @@ export const AUXILIARY_WINDOW_SIZE_PANEL_ORDER: PanelId[] = [
   'explorer',
   'properties',
   'viewport',
+  'project-settings',
 ];
 
 export function clampAuxiliaryWindowSize(

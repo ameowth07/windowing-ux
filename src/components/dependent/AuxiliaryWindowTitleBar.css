@@ -1,0 +1,49 @@
+.aux-window-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--aux-title-bar-height);
+  min-height: var(--aux-title-bar-height);
+  background: var(--bg-surface-0);
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.aux-window-title-bar:active {
+  cursor: grabbing;
+}
+
+.aux-window-title-bar__title {
+  padding: 0 8px 0 12px;
+  font: var(--font-title-small);
+  color: var(--content-default);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aux-window-title-bar__window-controls {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.aux-window-title-bar__window-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: var(--aux-title-bar-height);
+  color: var(--content-default);
+}
+
+.aux-window-title-bar__window-btn:hover {
+  background: var(--bg-shift-200);
+}
+
+.aux-window-title-bar__window-btn--close:hover {
+  background: #e81123;
+  color: white;
+}

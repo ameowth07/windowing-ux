@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import {
   FILE_MENU_ACTIONS,
   FILE_MENU_RECENT_ITEMS,
+  FILE_MENU_SETTINGS_ACTIONS,
 } from '../data/studioMenuItems';
 import { TransientSubmenuPortal } from './layout/TransientMenuPortal';
 import './StudioMenu.css';
@@ -122,6 +123,19 @@ export function FileSubmenu({
               <ChevronRightIcon />
             </span>
           </button>
+          <div className="studio-menu__divider" role="separator" />
+          {FILE_MENU_SETTINGS_ACTIONS.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              role="menuitem"
+              className="studio-menu__item"
+              onMouseEnter={() => setActiveSubmenu(null)}
+              onClick={() => onAction(action.id)}
+            >
+              <span className="studio-menu__item-label">{action.label}</span>
+            </button>
+          ))}
         </div>
       </TransientSubmenuPortal>
 

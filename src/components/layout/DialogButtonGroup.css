@@ -1,0 +1,40 @@
+.dialog-button-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.dialog-button-group__btn {
+  min-width: 64px;
+  min-height: 24px;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  font: var(--font-label);
+}
+
+.dialog-button-group__btn--emphasis {
+  background: var(--action-emphasis-background);
+  border-color: var(--action-emphasis-border);
+  color: var(--action-emphasis-foreground);
+}
+
+.dialog-button-group__btn--emphasis:hover:not(:disabled) {
+  background: var(--action-emphasis-background-hover);
+}
+
+.dialog-button-group__btn--emphasis:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dialog-button-group__btn--standard {
+  background: var(--action-standard-background);
+  border-color: var(--action-standard-border);
+  color: var(--action-standard-foreground);
+}
+
+.dialog-button-group__btn--standard:hover {
+  background: var(--action-standard-background-hover);
+}

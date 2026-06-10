@@ -142,7 +142,7 @@ export interface FileMenuAction {
 
 export const FILE_MENU_ACTIONS: FileMenuAction[] = [
   { id: 'new-project', label: 'New Project' },
-  { id: 'publish-as', label: 'Publish As' },
+  { id: 'save-project', label: 'Save Project' },
 ];
 
 export const FILE_MENU_RECENT_ITEMS: FileMenuAction[] = RECENT_PROJECT_LIST.map(
@@ -151,3 +151,7 @@ export const FILE_MENU_RECENT_ITEMS: FileMenuAction[] = RECENT_PROJECT_LIST.map(
     label: project.label,
   }),
 );
+
+export const FILE_MENU_SETTINGS_ACTIONS: FileMenuAction[] = [
+  { id: 'project-settings', label: 'Project Settings' },
+];

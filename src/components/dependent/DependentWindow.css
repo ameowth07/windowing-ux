@@ -1,0 +1,39 @@
+.dependent-window-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.dependent-window-layer--on-desktop {
+  position: absolute;
+  inset: 0;
+  z-index: 10000;
+}
+
+.dependent-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 288px;
+  border: 1px solid var(--stroke-emphasis);
+  border-radius: var(--aux-window-radius);
+  box-shadow: var(--shadow-transient-low);
+  overflow: hidden;
+  pointer-events: auto;
+  background: var(--bg-surface-0);
+}
+
+.dependent-window__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface-0);
+  overflow: auto;
+}
+
+.dependent-window__footer {
+  flex-shrink: 0;
+  padding: 12px 20px;
+}

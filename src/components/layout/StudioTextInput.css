@@ -1,0 +1,20 @@
+.studio-text-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--input-min-height);
+  padding: var(--input-padding);
+  border: var(--input-border-width) solid var(--input-border-color-default);
+  border-radius: var(--input-radius);
+  font: var(--font-body-small);
+  color: var(--content-emphasis);
+  background: var(--input-background);
+}
+
+.studio-text-input::placeholder {
+  color: var(--content-default);
+}
+
+.studio-text-input:focus {
+  outline: none;
+  border-color: var(--input-border-color-focus);
+}

@@ -147,7 +147,10 @@
 .desktop__windows > .primary-window-stack .resizable-app-window,
 .desktop__windows > .primary-window-stack .floating-layer > *,
 .gallery-desktop__windows > .primary-window-stack .resizable-app-window,
-.gallery-desktop__windows > .primary-window-stack .floating-layer > * {
+.gallery-desktop__windows > .primary-window-stack .floating-layer > *,
+.desktop__monitor-windows > .dependent-window-layer .dependent-window,
+.desktop__windows > .dependent-window-layer .dependent-window,
+.gallery-desktop__windows > .dependent-window-layer .dependent-window {
   pointer-events: auto;
 }
 

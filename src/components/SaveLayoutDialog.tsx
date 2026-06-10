@@ -1,6 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useDialogInputFocus } from '../hooks/useDialogInputFocus';
 import { usePrimaryWindowIdOptional } from '../context/PrimaryWindowContext';
+import { DialogButtonGroup } from './layout/DialogButtonGroup';
+import './layout/StudioTextInput.css';
 import './SaveLayoutDialog.css';
 
 interface SaveLayoutDialogProps {
@@ -9,11 +12,12 @@ interface SaveLayoutDialogProps {
   onClose: () => void;
 }
 
-function getPrimaryWindowContainer(windowId: string | null): HTMLElement | null {
+function getPrimaryWindowModalRoot(windowId: string | null): HTMLElement | null {
   if (!windowId) return null;
-  return document.querySelector<HTMLElement>(
+  const windowEl = document.querySelector<HTMLElement>(
     `.resizable-app-window[data-primary-window-id="${windowId}"]`,
   );
+  return windowEl?.parentElement ?? null;
 }
 
 export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProps) {
@@ -30,18 +34,16 @@ export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProp
       return;
     }
 
-    setPortalRoot(getPrimaryWindowContainer(windowId) ?? document.body);
+    setPortalRoot(getPrimaryWindowModalRoot(windowId) ?? document.body);
   }, [open, windowId]);
+
+  useDialogInputFocus(open, portalRoot != null, inputRef);
 
   useEffect(() => {
     if (!open) {
       setName('');
       return;
     }
-
-    const frame = requestAnimationFrame(() => {
-      inputRef.current?.focus();
-    });
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -50,10 +52,7 @@ export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProp
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
   if (!open || !portalRoot) return null;
@@ -73,13 +72,16 @@ export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProp
       <div
         className="save-layout-dialog__backdrop"
         aria-hidden="true"
-        onMouseDown={onClose}
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
       />
       <div
         className="save-layout-dialog__panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelId}
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
       >
         <button
           type="button"
@@ -98,7 +100,7 @@ export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProp
                 ref={inputRef}
                 id={labelId}
                 type="text"
-                className="save-layout-dialog__input"
+                className="studio-text-input save-layout-dialog__input"
                 placeholder="Name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -108,20 +110,13 @@ export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProp
           </div>
 
           <div className="save-layout-dialog__actions">
-            <button
-              type="submit"
-              className="save-layout-dialog__btn save-layout-dialog__btn--emphasis"
-              disabled={!name.trim()}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              className="save-layout-dialog__btn save-layout-dialog__btn--standard"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
+            <DialogButtonGroup
+              primaryLabel="Save"
+              primaryType="submit"
+              onPrimary={() => {}}
+              onCancel={onClose}
+              primaryDisabled={!name.trim()}
+            />
           </div>
         </form>
       </div>

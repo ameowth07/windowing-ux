@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
-import { getDefaultAuxiliaryWindowSize } from '../config/auxiliaryWindowSizes';
 import { APP_BAR_MENU_ITEMS } from '../data/studioMenuItems';
 import {
   getUndockPosition,
   useFloatingContainer,
 } from '../context/FloatingContainerContext';
+import { useAuxiliaryWindowSize } from '../context/AuxiliaryWindowSizeContext';
 import { usePrimaryWindowId } from '../context/PrimaryWindowContext';
 import { usePrimaryWindows } from '../context/PrimaryWindowsContext';
 import { useLayout } from '../context/LayoutContext';
@@ -18,6 +18,7 @@ import { cloneLayoutState } from '../utils/cloneLayoutState';
 import { createDocumentPanelInstanceId } from '../utils/panelId';
 import { FileSubmenu } from './FileSubmenu';
 import { SaveLayoutDialog } from './SaveLayoutDialog';
+import { SaveProjectDialog } from './SaveProjectDialog';
 import { AddDocumentMenu } from './layout/AddDocumentMenu';
 import { AddTabMenu } from './layout/AddTabMenu';
 import { OpenLayoutMenu } from './layout/OpenLayoutMenu';
@@ -39,6 +40,7 @@ interface AppBarMenuProps {
 export function AppBarMenu({ children }: AppBarMenuProps) {
   const { createNewProject, openRecentProject } = useScopeTabs();
   const { floatPanel, state, setLayoutState } = useLayout();
+  const { getSize: getAuxiliaryWindowSize } = useAuxiliaryWindowSize();
   const { savedLayouts, saveLayout } = useSavedLayouts();
   const windowId = usePrimaryWindowId();
   const { getWindow } = usePrimaryWindows();
@@ -63,6 +65,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   const windowSubmenuCloseTimerRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
   const [saveLayoutDialogOpen, setSaveLayoutDialogOpen] = useState(false);
+  const [saveProjectDialogOpen, setSaveProjectDialogOpen] = useState(false);
   const [activeSubmenu, setActiveSubmenu] = useState<AppBarMenuSubmenu>(null);
   const [windowSubmenu, setWindowSubmenu] = useState<WindowMenuSubmenu>(null);
 
@@ -170,7 +173,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   };
 
   const floatPanelAtDefaultPosition = (panelId: PanelId) => {
-    const size = getDefaultAuxiliaryWindowSize(panelId);
+    const size = getAuxiliaryWindowSize(panelId);
     const { x, y } = getUndockPosition(
       floatingContainerRef?.current ?? null,
       size.width,
@@ -182,6 +185,18 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   const handleFileAction = (actionId: string) => {
     if (actionId === 'new-project') {
       createNewProject();
+      close();
+      return;
+    }
+
+    if (actionId === 'save-project') {
+      close();
+      setSaveProjectDialogOpen(true);
+      return;
+    }
+
+    if (actionId === 'project-settings') {
+      floatPanelAtDefaultPosition('project-settings');
       close();
       return;
     }
@@ -474,6 +489,12 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
         open={saveLayoutDialogOpen}
         onSave={handleSaveLayoutConfirm}
         onClose={() => setSaveLayoutDialogOpen(false)}
+      />
+
+      <SaveProjectDialog
+        open={saveProjectDialogOpen}
+        onSave={() => setSaveProjectDialogOpen(false)}
+        onClose={() => setSaveProjectDialogOpen(false)}
       />
     </>
   );

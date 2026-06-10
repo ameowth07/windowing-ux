@@ -61,6 +61,12 @@ const AUXILIARY_PANELS: Record<string, PanelDefinition> = {
   explorer: { id: 'explorer', title: 'Explorer', panelType: 'auxiliary', skeleton: true },
   properties: { id: 'properties', title: 'Properties', panelType: 'auxiliary', skeleton: true },
   viewport: { id: 'viewport', title: 'Viewport', panelType: 'auxiliary', skeleton: true },
+  'project-settings': {
+    id: 'project-settings',
+    title: 'Project Settings',
+    panelType: 'auxiliary',
+    skeleton: true,
+  },
 };
 
 function buildPanelDefinitions(): Record<string, PanelDefinition> {

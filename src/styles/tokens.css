@@ -6,6 +6,7 @@
   --bg-surface-300: #272930;
   --bg-shift-200: rgba(208, 217, 251, 0.08);
   --bg-shift-300: rgba(208, 217, 251, 0.12);
+  --bg-system-emphasis: #335fff;
   --content-emphasis: #f7f7f8;
   --content-default: #d5d7dd;
   --content-muted: #939598;
@@ -14,6 +15,14 @@
   --stroke-emphasis: rgba(208, 217, 251, 0.16);
   --accent-play: #007aff;
   --accent-highlight: #b682f7;
+  --action-emphasis-background: #335fff;
+  --action-emphasis-foreground: #f7f7f8;
+  --action-emphasis-border: transparent;
+  --action-emphasis-background-hover: #4a70ff;
+  --action-standard-background: rgba(208, 217, 251, 0.12);
+  --action-standard-foreground: #f7f7f8;
+  --action-standard-border: transparent;
+  --action-standard-background-hover: rgba(208, 217, 251, 0.16);
   --highlight-200: rgba(101, 123, 244, 0.2);
   --drop-zone-fill: rgba(101, 123, 244, 0.2);
   --drop-zone-fill-subtle: rgba(101, 123, 244, 0.06);
@@ -35,6 +44,7 @@
   --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-label: 600 12px/12px var(--font-family);
   --font-body: 400 14px/20px var(--font-family);
+  --font-body-small: 400 12px/18px var(--font-family);
   --font-title: 700 14px/20px var(--font-family);
   --font-title-small: 700 12px/18px var(--font-family);
   --font-menu-item: 400 12px/1.4 var(--font-family);
@@ -48,6 +58,14 @@
   --stroke-muted: rgba(208, 217, 251, 0.08);
   --aux-window-radius: 8px;
   --aux-title-bar-height: 32px;
+  --input-background: var(--bg-shift-200);
+  --input-border-width: 2px;
+  --input-border-color-default: transparent;
+  --input-border-color-focus: var(--bg-system-emphasis);
+  --input-radius: var(--radius-medium);
+  --input-min-height: 32px;
+  --input-padding: 8px;
+  --input-content-gap: 6px;
   --shadow-window: 0 0 0 1px var(--stroke-emphasis), 0 32px 64px rgba(0, 0, 0, 0.24);
   --shadow-transient-low:
     0 2px 2px -0.5px rgba(4, 4, 8, 0.25),

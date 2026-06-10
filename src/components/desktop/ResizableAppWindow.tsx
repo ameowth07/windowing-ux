@@ -117,7 +117,14 @@ export function ResizableAppWindow({
   const handleWindowDragStart = useCallback(
     (event: React.MouseEvent) => {
       if (disabled) return;
-      if ((event.target as HTMLElement).closest('button, input, a')) return;
+      const target = event.target as HTMLElement;
+      if (
+        target.closest(
+          'button, input, a, .save-layout-dialog, .dependent-window-layer',
+        )
+      ) {
+        return;
+      }
       event.preventDefault();
       startWindowDrag(windowId, event.clientX, event.clientY);
     },
