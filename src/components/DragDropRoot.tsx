@@ -28,7 +28,13 @@ import {
   canGroupDragWithTarget,
   getTargetPanelIdsForNode,
 } from '../utils/panelGrouping';
-import { isFloatingWindowId } from '../model/layoutOperations';
+import {
+  isFloatingWindowId,
+  findFloatingWindowByLayoutNodeId,
+  isDockTargetInRoot,
+  isFloatingLayoutTabGroupNode,
+  resolveFloatingWindowForTabGroupDrag,
+} from '../model/layoutOperations';
 import { useProjectTabBarEnabled } from '../context/ProjectTabBarContext';
 import { useScopeTabs } from '../context/ScopeTabContext';
 import { useLayout } from '../context/LayoutContext';
@@ -60,20 +66,14 @@ import {
 import { isFloatingBodyHover, isTabInsertTarget } from './layout/tabInsertUtils';
 import './DragDropRoot.css';
 
-const SHELL_EDGE_HIT_PRIORITY = [
-  'shell-edge-left',
-  'shell-edge-right',
-  'shell-edge-top',
-  'shell-edge-bottom',
-] as const;
 
-function pickShellEdgeHit(shellHits: { id: string | number }[]) {
-  if (shellHits.length <= 1) return shellHits[0];
-  for (const id of SHELL_EDGE_HIT_PRIORITY) {
-    const hit = shellHits.find((candidate) => String(candidate.id) === id);
+function pickEdgeDropHit(hits: { id: string | number }[]) {
+  if (hits.length <= 1) return hits[0];
+  for (const suffix of ['-left', '-right', '-top', '-bottom'] as const) {
+    const hit = hits.find((candidate) => String(candidate.id).endsWith(suffix));
     if (hit) return hit;
   }
-  return shellHits[0];
+  return hits[0];
 }
 
 interface DragDropRootProps {
@@ -123,6 +123,8 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
     mergeFloatingWindowIntoFloating,
     dockFloatingWindow,
     dockFloatingWindowAtTabIndex,
+    dockFloatingWindowInFloating,
+    dockFloatingTabGroupInFloating,
     moveFloating,
   } = useLayout();
   const projectTabBar = useProjectTabBarEnabled();
@@ -155,15 +157,20 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
   const collisionDetection: CollisionDetection = (args) => {
     const pointerHits = pointerWithin(args);
     if (pointerHits.length > 0) {
-      const shellHits = pointerHits.filter((hit) =>
-        String(hit.id).startsWith('shell-edge-'),
-      );
-      const shellHit = pickShellEdgeHit(shellHits);
-      if (shellHit) return [shellHit];
+      const edgeHits = pointerHits.filter((hit) => {
+        const id = String(hit.id);
+        return id.startsWith('shell-edge-') || id.startsWith('float-edge-');
+      });
+      const edgeHit = pickEdgeDropHit(edgeHits);
+      if (edgeHit) return [edgeHit];
 
       const floatingBodyHit = pointerHits.find((hit) => {
         const data = hit.data?.current;
         if (!isFloatingBodyHover(data)) return false;
+        const targetWindow = state.floating.find(
+          (window) => window.id === data.floatingWindowId,
+        );
+        if (targetWindow?.layout) return false;
         if (
           isFloatingWindowDrag(args.active.data.current) &&
           data.floatingWindowId === args.active.data.current.floatingWindowId
@@ -406,6 +413,9 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
 
     if ((overData as DropTargetData | undefined)?.type === 'drop-target') {
       const dropData = overData as DropTargetData;
+      if (dropData.nodeId === dragData.nodeId) {
+        return;
+      }
       if (
         dropData.nodeId !== '__workspace_root__' &&
         !canGroupWithNode(dragData, dropData.nodeId)
@@ -447,16 +457,29 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
     event: DragEndEvent,
     dragData: DragTabGroupData,
   ) => {
-    const floatingWindowId = dragData.nodeId;
-    const floatingWindow = state.floating.find(
-      (window) => window.id === floatingWindowId,
+    const floatingWindow = resolveFloatingWindowForTabGroupDrag(
+      state.floating,
+      dragData.nodeId,
     );
     if (!floatingWindow) return;
 
+    const floatingWindowId = floatingWindow.id;
+    const tabGroupNodeId = isFloatingLayoutTabGroupNode(
+      state.floating,
+      floatingWindowId,
+      dragData.nodeId,
+    )
+      ? dragData.nodeId
+      : undefined;
     const overData = event.over?.data.current;
 
     if (isTabInsertTarget(overData)) {
-      if (overData.nodeId === floatingWindowId) return;
+      if (
+        overData.nodeId === floatingWindowId ||
+        overData.nodeId === dragData.nodeId
+      ) {
+        return;
+      }
       if (isFloatingWindowId(state.floating, overData.nodeId)) {
         const target = state.floating.find(
           (window) => window.id === overData.nodeId,
@@ -485,6 +508,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         floatingWindowId,
         overData.nodeId,
         overData.index,
+        tabGroupNodeId,
       );
       return;
     }
@@ -511,8 +535,33 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
     }
 
     if ((overData as DropTargetData | undefined)?.type === 'drop-target') {
-      if (!canDockFloatingToWorkspace(floatingWindowId)) return;
       const dropData = overData as DropTargetData;
+      if (
+        !isDockTargetInRoot(state.root, dropData.nodeId) &&
+        findFloatingWindowByLayoutNodeId(state.floating, dropData.nodeId)
+      ) {
+        if (
+          !floatingWindowMatchesScope(floatingWindow, activeTabId, projectTabBar)
+        ) {
+          return;
+        }
+        if (tabGroupNodeId) {
+          dockFloatingTabGroupInFloating(
+            floatingWindowId,
+            tabGroupNodeId,
+            dropData.nodeId,
+            dropData.zone,
+          );
+        } else {
+          dockFloatingWindowInFloating(
+            floatingWindowId,
+            dropData.nodeId,
+            dropData.zone,
+          );
+        }
+        return;
+      }
+      if (!canDockFloatingToWorkspace(floatingWindowId)) return;
       if (
         dropData.nodeId !== '__workspace_root__' &&
         !canGroupWithNode(dragData, dropData.nodeId)
@@ -523,6 +572,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         floatingWindowId,
         dropData.nodeId,
         dropData.zone,
+        tabGroupNodeId,
       );
       return;
     }

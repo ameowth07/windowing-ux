@@ -138,15 +138,17 @@ export function getAllShellEdgeZones(): DropZone[] {
   return SHELL_EDGE_ZONES;
 }
 
-export function getShellEdgeZoneAtPoint(x: number, y: number): DropZone | null {
-  const container = document.querySelector('.shell-edge-zones');
-  if (!container) return null;
-
+function getEdgeZoneInContainer(
+  container: HTMLElement,
+  x: number,
+  y: number,
+): DropZone | null {
   const rect = container.getBoundingClientRect();
   const localX = x - rect.left;
   const localY = y - rect.top;
   const styles = getComputedStyle(container);
-  const side = Number.parseFloat(styles.getPropertyValue('--shell-edge-zone-side-size')) || 24;
+  const side =
+    Number.parseFloat(styles.getPropertyValue('--shell-edge-zone-side-size')) || 24;
   const endBandHeight =
     Number.parseFloat(styles.getPropertyValue('--shell-edge-zone-end-size')) || 24;
   const bottomBandTop = rect.height - endBandHeight;
@@ -183,4 +185,23 @@ export function getShellEdgeZoneAtPoint(x: number, y: number): DropZone | null {
   }
 
   return null;
+}
+
+export function getShellEdgeZoneAtPoint(x: number, y: number): DropZone | null {
+  const container = document.querySelector('.shell-edge-zones');
+  if (!container) return null;
+  return getEdgeZoneInContainer(container as HTMLElement, x, y);
+}
+
+export function getFloatingEdgeZoneAtPoint(x: number, y: number): DropZone | null {
+  const containers = document.querySelectorAll('.floating-edge-zones');
+  for (const container of containers) {
+    const zone = getEdgeZoneInContainer(container as HTMLElement, x, y);
+    if (zone) return zone;
+  }
+  return null;
+}
+
+export function getEdgeDropZoneAtPoint(x: number, y: number): DropZone | null {
+  return getShellEdgeZoneAtPoint(x, y) ?? getFloatingEdgeZoneAtPoint(x, y);
 }

@@ -1,6 +1,6 @@
 import { isPanelDrag, isTabGroupDrag } from '../components/dnd/dragTypes';
 import { getPanelDefinition } from '../data/panels';
-import { findNodeById } from '../model/layoutOperations';
+import { findNodeById, findFloatingWindowByLayoutNodeId } from '../model/layoutOperations';
 import type { DragData, FloatingWindow, LayoutNode, PanelId, PanelType } from '../types/layout';
 
 export function getTargetPanelIdsForNode(
@@ -8,6 +8,16 @@ export function getTargetPanelIdsForNode(
   floating: FloatingWindow[],
   nodeId: string,
 ): PanelId[] {
+  const floatByLayout = findFloatingWindowByLayoutNodeId(floating, nodeId);
+  if (floatByLayout?.layout) {
+    const node = findNodeById(floatByLayout.layout, nodeId);
+    if (!node) return [];
+    if (node.type === 'panel') return [node.panelId];
+    if (node.type === 'tabs') return node.panels;
+    if (node.id === floatByLayout.layout.id) return floatByLayout.panels;
+    return [];
+  }
+
   const floatingWindow = floating.find((window) => window.id === nodeId);
   if (floatingWindow) {
     return floatingWindow.panels;

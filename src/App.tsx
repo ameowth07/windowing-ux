@@ -2,11 +2,11 @@ import './App.css';
 import { DesktopEnvironment } from './components/desktop/DesktopEnvironment';
 import { AppWindowProvider } from './context/AppWindowContext';
 import { AuxiliaryWindowSizeProvider } from './context/AuxiliaryWindowSizeContext';
-import { DropZoneVariantProvider } from './context/DropZoneVariantContext';
 import { EdgeDropZoneDelayProvider } from './context/EdgeDropZoneDelayContext';
 import { MonitorLayoutProvider } from './context/MonitorLayoutContext';
 import { ProjectTabBarProvider } from './context/ProjectTabBarContext';
 import { EnforceDocumentRegionProvider } from './context/EnforceDocumentRegionContext';
+import { FloatingPanelDockingProvider } from './context/FloatingPanelDockingContext';
 import { SkeletonContentProvider } from './context/SkeletonContentContext';
 import { RecentProjectsProvider } from './context/RecentProjectsContext';
 import { SavedLayoutsProvider } from './context/SavedLayoutsContext';
@@ -20,9 +20,9 @@ function App() {
       <SavedLayoutsProvider>
       <SkeletonContentProvider>
         <EnforceDocumentRegionProvider>
+        <FloatingPanelDockingProvider>
         <ProjectTabBarProvider>
           <MonitorLayoutProvider>
-          <DropZoneVariantProvider>
             <EdgeDropZoneDelayProvider>
               <AuxiliaryWindowSizeProvider>
                 <ShowDropzonesProvider>
@@ -36,9 +36,9 @@ function App() {
                 </ShowDropzonesProvider>
               </AuxiliaryWindowSizeProvider>
             </EdgeDropZoneDelayProvider>
-          </DropZoneVariantProvider>
           </MonitorLayoutProvider>
         </ProjectTabBarProvider>
+        </FloatingPanelDockingProvider>
         </EnforceDocumentRegionProvider>
       </SkeletonContentProvider>
       </SavedLayoutsProvider>

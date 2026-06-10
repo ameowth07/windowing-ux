@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { useFloatDragPreview } from '../../context/FloatDragPreviewContext';
 import { useCollapsedTabBar } from '../../context/CollapsedTabBarContext';
+import { useFloatingLayoutWindowId } from '../../context/FloatingLayoutContext';
 import { useLayout } from '../../context/LayoutContext';
 import type { DragPanelData, LayoutNode, PanelHoverData, PanelId } from '../../types/layout';
 import { usePanelGroupingBlocked } from '../../hooks/usePanelGroupingBlocked';
@@ -26,6 +27,8 @@ export function PanelContainer({ node }: PanelContainerProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+  const floatingWindowId = useFloatingLayoutWindowId();
+  const tabSource = floatingWindowId ? 'floating' : 'docked';
   const { active } = useDndContext();
   const floatPreview = useFloatDragPreview();
   const { setActiveTab, selectTabOverflow } = useLayout();
@@ -62,7 +65,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
     visiblePanelIds,
     overflowPanelIds,
     activeTabId: activePanelId,
-    variant: 'docked',
+    variant: tabSource,
   });
 
   const isThisTabGroupDragging =
@@ -130,6 +133,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
             nodeId={node.id}
             panels={panelIds}
             activeTabId={activePanelId}
+            source={tabSource}
           />
           {visiblePanelIds.map((panelId) => (
             <DraggableTab
@@ -137,6 +141,8 @@ export function PanelContainer({ node }: PanelContainerProps) {
               panelId={panelId}
               tabIndex={panelIds.indexOf(panelId)}
               active={panelId === activePanelId}
+              source={tabSource}
+              floatingWindowId={floatingWindowId ?? undefined}
               onSelect={() => {
                 if (node.type === 'tabs') {
                   setActiveTab(node.id, panelId);
@@ -162,6 +168,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
             nodeId={node.id}
             panelIds={panelIds}
             activePanelId={activePanelId}
+            tabBarRef={tabBarRef}
           />
         </div>
       </div>

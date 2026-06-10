@@ -2,7 +2,7 @@ import { useDndMonitor } from '@dnd-kit/core';
 import { useEffect, useRef } from 'react';
 import {
   getAllShellEdgeZones,
-  getShellEdgeZoneAtPoint,
+  getEdgeDropZoneAtPoint,
   useEdgeDropZoneDelay,
 } from '../../context/EdgeDropZoneDelayContext';
 import { getPointerFromDragEvent } from '../floating/resolveFloatDropPreview';
@@ -11,7 +11,7 @@ import { isDockingDrag } from '../dnd/dragTypes';
 export function ShellEdgeZoneActivationTracker() {
   const { enabled, delayMs, resetActivation, setActivatedZones } =
     useEdgeDropZoneDelay();
-  const hoverZoneRef = useRef<ReturnType<typeof getShellEdgeZoneAtPoint>>(null);
+  const hoverZoneRef = useRef<ReturnType<typeof getEdgeDropZoneAtPoint>>(null);
   const hoverStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function ShellEdgeZoneActivationTracker() {
       if (!enabled || !isDockingDrag(event.active.data.current)) return;
 
       const pointer = getPointerFromDragEvent(event);
-      const zone = getShellEdgeZoneAtPoint(pointer.x, pointer.y);
+      const zone = getEdgeDropZoneAtPoint(pointer.x, pointer.y);
 
       if (zone !== hoverZoneRef.current) {
         hoverZoneRef.current = zone;

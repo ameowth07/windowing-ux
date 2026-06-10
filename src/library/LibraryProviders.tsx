@@ -1,7 +1,6 @@
 import { DndContext, pointerWithin, rectIntersection } from '@dnd-kit/core';
 import type { ReactNode } from 'react';
 import { AppWindowProvider } from '../context/AppWindowContext';
-import { DropZoneVariantProvider } from '../context/DropZoneVariantContext';
 import { LayoutProvider } from '../context/LayoutContext';
 import { ProjectTabBarProvider } from '../context/ProjectTabBarContext';
 import { EnforceDocumentRegionProvider } from '../context/EnforceDocumentRegionContext';
@@ -74,9 +73,7 @@ export function LibraryProviders({
   if (providers.includes('dnd')) {
     content = (
       <ShowDropzonesProvider>
-        <DropZoneVariantProvider>
-          <DndContext collisionDetection={collisionDetection}>{content}</DndContext>
-        </DropZoneVariantProvider>
+        <DndContext collisionDetection={collisionDetection}>{content}</DndContext>
       </ShowDropzonesProvider>
     );
   }

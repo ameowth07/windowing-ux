@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  computeContextMenuPosition,
   computeDropdownMenuPosition,
   computeSubmenuPosition,
   constrainStudioMenuToViewport,
@@ -12,6 +13,7 @@ interface TransientMenuPortalProps {
   anchorRef: React.RefObject<HTMLElement | null>;
   align?: 'start' | 'end';
   offsetY?: number;
+  pointerPosition?: { x: number; y: number } | null;
   children: ReactNode;
   onClose?: () => void;
   portalRef?: React.RefObject<HTMLDivElement | null>;
@@ -23,6 +25,7 @@ export function TransientMenuPortal({
   anchorRef,
   align = 'end',
   offsetY = 4,
+  pointerPosition = null,
   children,
   onClose,
   portalRef,
@@ -35,18 +38,33 @@ export function TransientMenuPortal({
   );
 
   const updatePosition = () => {
-    const anchor = anchorRef.current;
     const menu = menuRef.current;
-    if (!anchor || !menu) return;
+    if (!menu) return;
 
-    const anchorRect = anchor.getBoundingClientRect();
     const menuWidth = menu.offsetWidth;
-    const next = computeDropdownMenuPosition(
-      anchorRect,
-      menuWidth,
-      align,
-      offsetY,
-    );
+    const menuHeight = menu.offsetHeight;
+    let next: { top: number; left: number };
+
+    if (pointerPosition) {
+      next = computeContextMenuPosition(
+        pointerPosition.x,
+        pointerPosition.y,
+        menuWidth,
+        menuHeight,
+      );
+    } else {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+
+      const anchorRect = anchor.getBoundingClientRect();
+      next = computeDropdownMenuPosition(
+        anchorRect,
+        menuWidth,
+        align,
+        offsetY,
+      );
+    }
+
     setPosition((current) =>
       current?.top === next.top && current?.left === next.left ? current : next,
     );
@@ -63,7 +81,7 @@ export function TransientMenuPortal({
     updatePosition();
     const raf = requestAnimationFrame(updatePosition);
     return () => cancelAnimationFrame(raf);
-  }, [open, anchorRef, align, offsetY, menuRef]);
+  }, [open, anchorRef, align, offsetY, menuRef, pointerPosition]);
 
   useEffect(() => {
     if (!open) return;
@@ -77,14 +95,14 @@ export function TransientMenuPortal({
       window.removeEventListener('resize', handleReposition);
       window.removeEventListener('scroll', handleReposition, true);
     };
-  }, [open, anchorRef, align, offsetY, menuRef]);
+  }, [open, anchorRef, align, offsetY, menuRef, pointerPosition]);
 
   useEffect(() => {
     if (!open || !onClose) return;
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (anchorRef.current?.contains(target)) return;
+      if (!pointerPosition && anchorRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
       if (ignoreRefs.some((ref) => ref.current?.contains(target))) return;
       onClose();
@@ -92,7 +110,7 @@ export function TransientMenuPortal({
 
     window.addEventListener('pointerdown', handlePointerDown, true);
     return () => window.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [open, onClose, anchorRef, menuRef, ignoreRefs]);
+  }, [open, onClose, anchorRef, menuRef, ignoreRefs, pointerPosition]);
 
   if (!open) return null;
 

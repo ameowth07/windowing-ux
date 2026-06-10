@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useCollapsedTabBar } from '../../context/CollapsedTabBarContext';
 import { useEnforceDocumentRegionEnabled } from '../../context/EnforceDocumentRegionContext';
 import { useLayout } from '../../context/LayoutContext';
+import { useFloatingLayoutWindowId } from '../../context/FloatingLayoutContext';
 import type { PanelId } from '../../types/layout';
 import { getPanelGroupType } from '../../utils/panelGrouping';
 import { AddDocumentMenu } from './AddDocumentMenu';
@@ -18,6 +19,7 @@ interface PanelTabBarMenuProps {
   panelIds: PanelId[];
   activePanelId: PanelId;
   variant?: 'docked' | 'floating';
+  tabBarRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function PanelTabBarMenu({
@@ -25,6 +27,7 @@ export function PanelTabBarMenu({
   panelIds,
   activePanelId,
   variant = 'docked',
+  tabBarRef,
 }: PanelTabBarMenuProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const addTabRef = useRef<HTMLButtonElement>(null);
@@ -43,14 +46,22 @@ export function PanelTabBarMenu({
     closeFloating,
   } = useLayout();
   const { collapseTabBar } = useCollapsedTabBar();
+  const floatingLayoutWindowId = useFloatingLayoutWindowId();
   const enforceDocumentRegion = useEnforceDocumentRegionEnabled();
   const panelGroupType = getPanelGroupType(panelIds);
   const addTabDisabled =
     enforceDocumentRegion && panelGroupType !== 'auxiliary';
   const addDocumentDisabled =
     enforceDocumentRegion && panelGroupType !== 'document';
-  const [open, setOpen] = useState(false);
+  const [openSource, setOpenSource] = useState<'button' | 'context' | null>(
+    null,
+  );
+  const [contextMenuPoint, setContextMenuPoint] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [activeSubmenu, setActiveSubmenu] = useState<PanelMenuSubmenu>(null);
+  const open = openSource !== null;
 
   const clearSubmenuCloseTimer = () => {
     if (submenuCloseTimerRef.current !== null) {
@@ -98,11 +109,26 @@ export function PanelTabBarMenu({
   }, [open]);
 
   useEffect(() => {
+    const tabBar = tabBarRef?.current;
+    if (!tabBar) return;
+
+    const handleContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
+      setActiveSubmenu(null);
+      setContextMenuPoint({ x: event.clientX, y: event.clientY });
+      setOpenSource('context');
+    };
+
+    tabBar.addEventListener('contextmenu', handleContextMenu);
+    return () => tabBar.removeEventListener('contextmenu', handleContextMenu);
+  }, [tabBarRef]);
+
+  useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setOpen(false);
+        setOpenSource(null);
       }
     };
 
@@ -118,19 +144,24 @@ export function PanelTabBarMenu({
     };
   }, []);
 
+  const closeMenu = () => {
+    setOpenSource(null);
+    setContextMenuPoint(null);
+  };
+
   const handleCloseTab = () => {
     closeTab(activePanelId);
-    setOpen(false);
+    closeMenu();
   };
 
   const handleDock = () => {
-    closeFloating(nodeId);
-    setOpen(false);
+    closeFloating(floatingLayoutWindowId ?? nodeId);
+    closeMenu();
   };
 
   const handleCollapseTab = () => {
     collapseTabBar(nodeId);
-    setOpen(false);
+    closeMenu();
   };
 
   const handleAddPanel = (panelId: PanelId) => {
@@ -140,7 +171,7 @@ export function PanelTabBarMenu({
     } else {
       addPanelToTabGroup(nodeId, panelId);
     }
-    setOpen(false);
+    closeMenu();
   };
 
   const handleAddDocument = (panelId: PanelId) => {
@@ -149,13 +180,13 @@ export function PanelTabBarMenu({
     } else {
       addDocumentToTabGroup(nodeId, panelId);
     }
-    setOpen(false);
+    closeMenu();
   };
 
   const menuBtnClass =
     variant === 'floating'
-      ? `floating-window__menu-btn ${open ? 'floating-window__menu-btn--open' : ''}`
-      : `panel-container__menu-btn ${open ? 'panel-container__menu-btn--open' : ''}`;
+      ? `floating-window__menu-btn ${openSource === 'button' ? 'floating-window__menu-btn--open' : ''}`
+      : `panel-container__menu-btn ${openSource === 'button' ? 'panel-container__menu-btn--open' : ''}`;
 
   return (
     <div className="panel-tab-bar-menu">
@@ -164,10 +195,12 @@ export function PanelTabBarMenu({
         type="button"
         className={menuBtnClass}
         aria-label="Tab group menu"
-        aria-expanded={open}
+        aria-expanded={openSource === 'button'}
         aria-haspopup="menu"
         title="Tab group menu"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() =>
+          setOpenSource((current) => (current === 'button' ? null : 'button'))
+        }
         onPointerDown={(event) => event.stopPropagation()}
       >
         <MenuIcon />
@@ -177,9 +210,10 @@ export function PanelTabBarMenu({
         open={open}
         anchorRef={triggerRef}
         align="start"
+        pointerPosition={openSource === 'context' ? contextMenuPoint : null}
         portalRef={menuPortalRef}
         ignoreRefs={[addTabMenuRef, addTabNestedMenuRef, addDocumentMenuRef]}
-        onClose={() => setOpen(false)}
+        onClose={closeMenu}
       >
         <div className="studio-menu studio-menu--auto" role="menu">
           <button
@@ -191,7 +225,7 @@ export function PanelTabBarMenu({
           >
             <span className="studio-menu__item-label">Close Tab</span>
           </button>
-          {variant === 'floating' ? (
+          {variant === 'floating' || floatingLayoutWindowId ? (
             <button
               type="button"
               role="menuitem"
@@ -265,7 +299,7 @@ export function PanelTabBarMenu({
         portalRef={addTabMenuRef}
         nestedPortalRef={addTabNestedMenuRef}
         onAddPanel={handleAddPanel}
-        onClose={() => setOpen(false)}
+        onClose={closeMenu}
       />
 
       <AddDocumentMenu
@@ -273,7 +307,7 @@ export function PanelTabBarMenu({
         anchorRef={addDocumentRef}
         portalRef={addDocumentMenuRef}
         onAddPanel={handleAddDocument}
-        onClose={() => setOpen(false)}
+        onClose={closeMenu}
       />
     </div>
   );

@@ -1,0 +1,96 @@
+.floating-edge-zones {
+  --shell-edge-zone-side-size: 24px;
+  --shell-edge-zone-end-size: calc(20px + var(--pane-gutter-size));
+
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.floating-edge-zone {
+  position: absolute;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.floating-edge-zone--left {
+  top: var(--shell-edge-zone-end-size);
+  bottom: var(--shell-edge-zone-end-size);
+  left: 0;
+  width: var(--shell-edge-zone-side-size);
+  z-index: 2;
+}
+
+.floating-edge-zone--right {
+  top: var(--shell-edge-zone-end-size);
+  bottom: var(--shell-edge-zone-end-size);
+  right: 0;
+  width: var(--shell-edge-zone-side-size);
+  z-index: 2;
+}
+
+.floating-edge-zone--top {
+  top: 0;
+  left: var(--shell-edge-zone-side-size);
+  right: var(--shell-edge-zone-side-size);
+  height: var(--shell-edge-zone-end-size);
+  z-index: 1;
+}
+
+.floating-edge-zone--bottom {
+  bottom: 0;
+  left: var(--shell-edge-zone-side-size);
+  right: var(--shell-edge-zone-side-size);
+  height: var(--shell-edge-zone-end-size);
+  z-index: 1;
+}
+
+.floating-edge-zone--left::after,
+.floating-edge-zone--right::after,
+.floating-edge-zone--top::after,
+.floating-edge-zone--bottom::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  background: var(--drop-zone-stroke);
+}
+
+.floating-edge-zone--left::after {
+  top: calc(-1 * var(--shell-edge-zone-end-size));
+  bottom: calc(-1 * var(--shell-edge-zone-end-size));
+  left: 0;
+  width: var(--drop-zone-edge-size);
+}
+
+.floating-edge-zone--right::after {
+  top: calc(-1 * var(--shell-edge-zone-end-size));
+  bottom: calc(-1 * var(--shell-edge-zone-end-size));
+  right: 0;
+  width: var(--drop-zone-edge-size);
+}
+
+.floating-edge-zone--top::after {
+  left: calc(-1 * var(--shell-edge-zone-side-size));
+  right: calc(-1 * var(--shell-edge-zone-side-size));
+  top: 0;
+  height: var(--drop-zone-edge-size);
+}
+
+.floating-edge-zone--bottom::after {
+  left: calc(-1 * var(--shell-edge-zone-side-size));
+  right: calc(-1 * var(--shell-edge-zone-side-size));
+  bottom: 0;
+  height: var(--drop-zone-edge-size);
+}
+
+.floating-edge-zone--active::after,
+.floating-edge-zones--debug .floating-edge-zone::after {
+  opacity: 1;
+}
+
+.floating-edge-zones--debug .floating-edge-zone {
+  pointer-events: none;
+}

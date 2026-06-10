@@ -53,27 +53,3 @@
   width: auto;
   height: 33.333%;
 }
-
-.drop-zone--center {
-  top: 33.333%;
-  left: 33.333%;
-  width: 33.333%;
-  height: 33.333%;
-}
-
-/* Four-zone variant: full-width top/bottom */
-.drop-zones--four .drop-zone--top {
-  top: 0;
-  left: 0;
-  right: 0;
-  width: auto;
-  height: 33.333%;
-}
-
-.drop-zones--four .drop-zone--bottom {
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: auto;
-  height: 33.333%;
-}

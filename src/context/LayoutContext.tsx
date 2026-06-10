@@ -13,6 +13,7 @@ import {
   shouldResetScopeTabLayout,
 } from '../data/initialLayout';
 import { useProjectTabBarEnabled } from './ProjectTabBarContext';
+import { useFloatingPanelDockingEnabled } from './FloatingPanelDockingContext';
 import { useRecentProjects } from './RecentProjectsContext';
 import { useScopeTabs, type ScopeTab } from './ScopeTabContext';
 import { cloneLayoutState } from '../utils/cloneLayoutState';
@@ -23,12 +24,19 @@ import {
   collectAllPanelIds,
   collectDockedPanelIds,
   createNodeId,
-  dockPanel,
   dockPanelAtTabIndex,
+  dockPanelInFloating,
+  dockPanelInFloatingAtTabIndex,
   dockFloatingWindow,
   dockTabGroupAtTabIndex,
+  dockTabGroupInFloating,
   dockFloatingWindowAtTabIndex,
+  dockFloatingWindowInFloating,
+  dockFloatingTabGroupInFloating,
+  dockFloatingTabGroupToRoot,
+  isFloatingLayoutTabGroupNode,
   extractTabGroup,
+  migrateFloatingWindowToLayout,
   mergeTabGroupIntoFloating,
   mergeFloatingWindowIntoFloating,
   mergePanelIntoFloatingWindow,
@@ -37,12 +45,20 @@ import {
   removePanelFromFloating,
   removePanelFromTree,
   setActiveTab,
+  setActiveTabInFloating,
   swapTabGroupPanels,
+  swapTabGroupPanelsInFloating,
   applyLocalizedSplitResize,
+  applyLocalizedSplitResizeInFloating,
   setSplitRatio,
+  setSplitRatioInFloating,
   swapFloatingPanels,
   findNodeById,
+  findFloatingWindowByLayoutNodeId,
+  syncFloatingWindowPanels,
+  floatingWindowToLayoutNode,
 } from '../model/layoutOperations';
+import { createDocumentPanelInstanceId } from '../utils/panelId';
 import type {
   DropZone,
   FloatingWindow,
@@ -72,6 +88,7 @@ type LayoutAction =
       height?: number;
       scopeTabId?: string;
       monitorIndex?: number;
+      withInternalLayout?: boolean;
     }
   | {
       type: 'MOVE_FLOATING';
@@ -104,6 +121,7 @@ type LayoutAction =
       floatingWindowId: string;
       targetNodeId: string;
       zone: DropZone;
+      tabGroupNodeId?: string;
     }
   | {
       type: 'FLOAT_TAB_GROUP';
@@ -114,6 +132,7 @@ type LayoutAction =
       height?: number;
       scopeTabId?: string;
       monitorIndex?: number;
+      withInternalLayout?: boolean;
     }
   | {
       type: 'DOCK_TAB_GROUP';
@@ -137,6 +156,7 @@ type LayoutAction =
       floatingWindowId: string;
       targetNodeId: string;
       index: number;
+      tabGroupNodeId?: string;
     }
   | {
       type: 'MERGE_FLOATING_WINDOW_INTO_FLOATING';
@@ -204,33 +224,45 @@ type LayoutAction =
   | {
       type: 'SET_STATE';
       state: LayoutState;
+    }
+  | {
+      type: 'MIGRATE_FLOATING_TO_LAYOUT';
+    }
+  | {
+      type: 'DOCK_FLOATING_WINDOW_IN_FLOATING';
+      sourceWindowId: string;
+      targetNodeId: string;
+      zone: DropZone;
+    }
+  | {
+      type: 'DOCK_FLOATING_TAB_GROUP_IN_FLOATING';
+      sourceWindowId: string;
+      tabGroupNodeId: string;
+      targetNodeId: string;
+      zone: DropZone;
     };
 
 function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
   switch (action.type) {
     case 'DOCK_PANEL': {
-      const floating = removePanelFromFloating(state.floating, action.panelId);
-      return {
-        root: dockPanel(
-          state.root,
-          action.panelId,
-          action.targetNodeId,
-          action.zone,
-        ),
-        floating,
-      };
+      const result = dockPanelInFloating(
+        state.root,
+        state.floating,
+        action.panelId,
+        action.targetNodeId,
+        action.zone,
+      );
+      return result;
     }
     case 'DOCK_PANEL_AT_TAB_INDEX': {
-      const floating = removePanelFromFloating(state.floating, action.panelId);
-      return {
-        root: dockPanelAtTabIndex(
-          state.root,
-          action.panelId,
-          action.targetNodeId,
-          action.index,
-        ),
-        floating,
-      };
+      const result = dockPanelInFloatingAtTabIndex(
+        state.root,
+        state.floating,
+        action.panelId,
+        action.targetNodeId,
+        action.index,
+      );
+      return result;
     }
     case 'FLOAT_PANEL': {
       const root = removePanelFromTree(state.root, action.panelId);
@@ -260,6 +292,15 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         id: createNodeId('float'),
         activeTabId: action.panelId,
         panels: [action.panelId],
+        ...(action.withInternalLayout
+          ? {
+              layout: {
+                type: 'panel',
+                id: createNodeId('panel'),
+                panelId: action.panelId,
+              },
+            }
+          : {}),
         x: action.x,
         y: action.y,
         width: action.width ?? getDefaultAuxiliaryWindowSize(action.panelId).width,
@@ -314,12 +355,15 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         (window) => window.id === action.floatingWindowId,
       );
       if (!target) return state;
-      let root = state.root;
-      for (const panelId of target.panels) {
-        root = dockPanel(root, panelId, '__workspace_root__', 'right');
-      }
       return {
-        root,
+        root: dockFloatingWindow(
+          state.root,
+          target.panels,
+          target.activeTabId,
+          '__workspace_root__',
+          'right',
+          target.layout,
+        ),
         floating: state.floating.filter(
           (window) => window.id !== action.floatingWindowId,
         ),
@@ -340,6 +384,23 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         (window) => window.id === action.floatingWindowId,
       );
       if (!target) return state;
+      if (
+        action.tabGroupNodeId &&
+        isFloatingLayoutTabGroupNode(
+          state.floating,
+          action.floatingWindowId,
+          action.tabGroupNodeId,
+        )
+      ) {
+        return dockFloatingTabGroupToRoot(
+          state.root,
+          state.floating,
+          action.floatingWindowId,
+          action.tabGroupNodeId,
+          action.targetNodeId,
+          action.zone,
+        );
+      }
       return {
         root: dockFloatingWindow(
           state.root,
@@ -347,6 +408,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
           target.activeTabId,
           action.targetNodeId,
           action.zone,
+          target.layout,
         ),
         floating: state.floating.filter(
           (window) => window.id !== action.floatingWindowId,
@@ -367,6 +429,11 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         id: createNodeId('float'),
         activeTabId: group.activeTabId,
         panels: [...group.panels],
+        ...(action.withInternalLayout
+          ? {
+              layout: floatingWindowToLayoutNode(group.panels, group.activeTabId),
+            }
+          : {}),
         x: action.x,
         y: action.y,
         width:
@@ -386,6 +453,21 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
       const node = findNodeById(state.root, action.nodeId);
       const group = extractTabGroup(node);
       if (!group) return state;
+
+      if (action.nodeId === action.targetNodeId) {
+        return state;
+      }
+
+      const inFloating = dockTabGroupInFloating(
+        state.root,
+        state.floating,
+        action.nodeId,
+        action.targetNodeId,
+        action.zone,
+      );
+      if (inFloating.root !== state.root || inFloating.floating !== state.floating) {
+        return inFloating;
+      }
 
       const root = dockFloatingWindow(
         removeLayoutNodeFromTree(state.root, action.nodeId),
@@ -435,6 +517,7 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         action.floatingWindowId,
         action.targetNodeId,
         action.index,
+        action.tabGroupNodeId,
       );
       return { root, floating };
     }
@@ -474,12 +557,24 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         root: state.root
           ? setActiveTab(state.root, action.tabGroupId, action.panelId)
           : null,
+        floating: setActiveTabInFloating(
+          state.floating,
+          action.tabGroupId,
+          action.panelId,
+        ),
       };
     case 'SELECT_TAB_OVERFLOW':
       return {
         ...state,
         root: swapTabGroupPanels(
           state.root,
+          action.tabGroupId,
+          action.panelId,
+          action.replacePanelId,
+          action.panelId,
+        ),
+        floating: swapTabGroupPanelsInFloating(
+          state.floating,
           action.tabGroupId,
           action.panelId,
           action.replacePanelId,
@@ -492,12 +587,23 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         root: state.root
           ? setSplitRatio(state.root, action.splitId, action.ratio)
           : null,
+        floating: setSplitRatioInFloating(
+          state.floating,
+          action.splitId,
+          action.ratio,
+        ),
       };
     case 'APPLY_LOCALIZED_SPLIT_RESIZE':
       return {
         ...state,
         root: applyLocalizedSplitResize(
           state.root,
+          action.splitId,
+          action.deltaPx,
+          action.containerInnerSize,
+        ),
+        floating: applyLocalizedSplitResizeInFloating(
+          state.floating,
           action.splitId,
           action.deltaPx,
           action.containerInnerSize,
@@ -509,6 +615,54 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
         floating: removePanelFromFloating(state.floating, action.panelId),
       };
     case 'ADD_PANEL_TO_TAB_GROUP': {
+      const floatWindow = findFloatingWindowByLayoutNodeId(
+        state.floating,
+        action.tabGroupId,
+      );
+      if (floatWindow?.layout) {
+        const host = findNodeById(floatWindow.layout, action.tabGroupId);
+        if (!host || (host.type !== 'panel' && host.type !== 'tabs')) {
+          return state;
+        }
+        const openPanels =
+          host.type === 'tabs' ? host.panels : [host.panelId];
+        if (openPanels.includes(action.panelId)) {
+          return state;
+        }
+
+        const root = removePanelFromTree(state.root, action.panelId);
+        const floatingWithoutPanel = removePanelFromFloating(
+          state.floating,
+          action.panelId,
+        );
+        const target = floatingWithoutPanel.find(
+          (window) => window.id === floatWindow.id,
+        );
+        if (!target?.layout) {
+          return { root, floating: floatingWithoutPanel };
+        }
+
+        const newLayout = dockPanelAtTabIndex(
+          target.layout,
+          action.panelId,
+          action.tabGroupId,
+          openPanels.length,
+        );
+
+        return {
+          root,
+          floating: floatingWithoutPanel.map((window) =>
+            window.id === floatWindow.id
+              ? syncFloatingWindowPanels({
+                  ...window,
+                  layout: newLayout,
+                  activeTabId: action.panelId,
+                })
+              : window,
+          ),
+        };
+      }
+
       const host = findNodeById(state.root, action.tabGroupId);
       if (!host || (host.type !== 'panel' && host.type !== 'tabs')) {
         return state;
@@ -553,6 +707,55 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     }
     case 'ADD_DOCUMENT_TO_TAB_GROUP': {
       const existingPanelIds = collectAllPanelIds(state.root, state.floating);
+      const floatWindow = findFloatingWindowByLayoutNodeId(
+        state.floating,
+        action.tabGroupId,
+      );
+      if (floatWindow?.layout) {
+        const host = findNodeById(floatWindow.layout, action.tabGroupId);
+        if (!host || (host.type !== 'panel' && host.type !== 'tabs')) {
+          return state;
+        }
+        const openPanels =
+          host.type === 'tabs' ? host.panels : [host.panelId];
+        const instanceId = createDocumentPanelInstanceId(
+          action.basePanelId,
+          existingPanelIds,
+        );
+
+        const root = removePanelFromTree(state.root, instanceId);
+        const floatingWithoutPanel = removePanelFromFloating(
+          state.floating,
+          instanceId,
+        );
+        const target = floatingWithoutPanel.find(
+          (window) => window.id === floatWindow.id,
+        );
+        if (!target?.layout) {
+          return { root, floating: floatingWithoutPanel };
+        }
+
+        const newLayout = dockPanelAtTabIndex(
+          target.layout,
+          instanceId,
+          action.tabGroupId,
+          openPanels.length,
+        );
+
+        return {
+          root,
+          floating: floatingWithoutPanel.map((window) =>
+            window.id === floatWindow.id
+              ? syncFloatingWindowPanels({
+                  ...window,
+                  layout: newLayout,
+                  activeTabId: instanceId,
+                })
+              : window,
+          ),
+        };
+      }
+
       return {
         root: addDocumentToTabGroup(
           state.root,
@@ -565,8 +768,12 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     }
     case 'ADD_DOCUMENT_TO_FLOATING_WINDOW': {
       const existingPanelIds = collectAllPanelIds(state.root, state.floating);
+      const instanceId = createDocumentPanelInstanceId(
+        action.basePanelId,
+        existingPanelIds,
+      );
       return {
-        root: state.root,
+        root: removePanelFromTree(state.root, instanceId),
         floating: addDocumentToFloatingWindow(
           state.floating,
           action.floatingWindowId,
@@ -577,6 +784,32 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     }
     case 'SET_STATE':
       return action.state;
+    case 'MIGRATE_FLOATING_TO_LAYOUT':
+      return {
+        ...state,
+        floating: state.floating.map(migrateFloatingWindowToLayout),
+      };
+    case 'DOCK_FLOATING_WINDOW_IN_FLOATING':
+      return {
+        ...state,
+        floating: dockFloatingWindowInFloating(
+          state.floating,
+          action.sourceWindowId,
+          action.targetNodeId,
+          action.zone,
+        ),
+      };
+    case 'DOCK_FLOATING_TAB_GROUP_IN_FLOATING':
+      return {
+        ...state,
+        floating: dockFloatingTabGroupInFloating(
+          state.floating,
+          action.sourceWindowId,
+          action.tabGroupNodeId,
+          action.targetNodeId,
+          action.zone,
+        ),
+      };
     default:
       return state;
   }
@@ -649,11 +882,24 @@ interface LayoutContextValue {
     floatingWindowId: string,
     targetNodeId: string,
     zone: DropZone,
+    tabGroupNodeId?: string,
   ) => void;
   dockFloatingWindowAtTabIndex: (
     floatingWindowId: string,
     targetNodeId: string,
     index: number,
+    tabGroupNodeId?: string,
+  ) => void;
+  dockFloatingWindowInFloating: (
+    sourceWindowId: string,
+    targetNodeId: string,
+    zone: DropZone,
+  ) => void;
+  dockFloatingTabGroupInFloating: (
+    sourceWindowId: string,
+    tabGroupNodeId: string,
+    targetNodeId: string,
+    zone: DropZone,
   ) => void;
   mergeFloatingWindowIntoFloating: (
     sourceWindowId: string,
@@ -710,6 +956,7 @@ interface LayoutProviderProps {
 
 export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
   const projectTabBar = useProjectTabBarEnabled();
+  const floatingPanelDockingEnabled = useFloatingPanelDockingEnabled();
   const { getLayoutForRecentProject, saveLayoutForRecentProject } =
     useRecentProjects();
   const { tabs, getActiveTabForWindow } = useScopeTabs();
@@ -754,6 +1001,12 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
     },
     [activeTab, getLayoutForRecentProject],
   );
+
+  useEffect(() => {
+    if (floatingPanelDockingEnabled) {
+      dispatchLayout({ type: 'MIGRATE_FLOATING_TO_LAYOUT' });
+    }
+  }, [floatingPanelDockingEnabled, dispatchLayout]);
 
   useEffect(() => {
     setScopedLayouts((current) => {
@@ -892,9 +1145,10 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
         height,
         scopeTabId: projectTabBar ? activeTabId : undefined,
         monitorIndex,
+        withInternalLayout: floatingPanelDockingEnabled,
       });
     },
-    [dispatchLayout, projectTabBar, activeTabId],
+    [dispatchLayout, projectTabBar, activeTabId, floatingPanelDockingEnabled],
   );
 
   const floatTabGroupAction = useCallback(
@@ -915,9 +1169,10 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
         height,
         scopeTabId: projectTabBar ? activeTabId : undefined,
         monitorIndex,
+        withInternalLayout: floatingPanelDockingEnabled,
       });
     },
-    [dispatchLayout, projectTabBar, activeTabId],
+    [dispatchLayout, projectTabBar, activeTabId, floatingPanelDockingEnabled],
   );
 
   const dockTabGroupAction = useCallback(
@@ -1010,10 +1265,46 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
   );
 
   const dockFloatingWindowAction = useCallback(
-    (floatingWindowId: string, targetNodeId: string, zone: DropZone) => {
+    (
+      floatingWindowId: string,
+      targetNodeId: string,
+      zone: DropZone,
+      tabGroupNodeId?: string,
+    ) => {
       dispatchLayout({
         type: 'DOCK_FLOATING_WINDOW',
         floatingWindowId,
+        targetNodeId,
+        zone,
+        tabGroupNodeId,
+      });
+    },
+    [dispatchLayout],
+  );
+
+  const dockFloatingWindowAtTabIndexAction = useCallback(
+    (
+      floatingWindowId: string,
+      targetNodeId: string,
+      index: number,
+      tabGroupNodeId?: string,
+    ) => {
+      dispatchLayout({
+        type: 'DOCK_FLOATING_WINDOW_AT_TAB_INDEX',
+        floatingWindowId,
+        targetNodeId,
+        index,
+        tabGroupNodeId,
+      });
+    },
+    [dispatchLayout],
+  );
+
+  const dockFloatingWindowInFloatingAction = useCallback(
+    (sourceWindowId: string, targetNodeId: string, zone: DropZone) => {
+      dispatchLayout({
+        type: 'DOCK_FLOATING_WINDOW_IN_FLOATING',
+        sourceWindowId,
         targetNodeId,
         zone,
       });
@@ -1021,13 +1312,19 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
     [dispatchLayout],
   );
 
-  const dockFloatingWindowAtTabIndexAction = useCallback(
-    (floatingWindowId: string, targetNodeId: string, index: number) => {
+  const dockFloatingTabGroupInFloatingAction = useCallback(
+    (
+      sourceWindowId: string,
+      tabGroupNodeId: string,
+      targetNodeId: string,
+      zone: DropZone,
+    ) => {
       dispatchLayout({
-        type: 'DOCK_FLOATING_WINDOW_AT_TAB_INDEX',
-        floatingWindowId,
+        type: 'DOCK_FLOATING_TAB_GROUP_IN_FLOATING',
+        sourceWindowId,
+        tabGroupNodeId,
         targetNodeId,
-        index,
+        zone,
       });
     },
     [dispatchLayout],
@@ -1185,6 +1482,8 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
       mergeFloatingTab: mergeFloatingTabAction,
       dockFloatingWindow: dockFloatingWindowAction,
       dockFloatingWindowAtTabIndex: dockFloatingWindowAtTabIndexAction,
+      dockFloatingWindowInFloating: dockFloatingWindowInFloatingAction,
+      dockFloatingTabGroupInFloating: dockFloatingTabGroupInFloatingAction,
       mergeFloatingWindowIntoFloating: mergeFloatingWindowIntoFloatingAction,
       setFloatingActiveTab: setFloatingActiveTabAction,
       selectFloatingOverflowTab: selectFloatingOverflowTabAction,
@@ -1215,6 +1514,8 @@ export function LayoutProvider({ windowId, children }: LayoutProviderProps) {
       mergeFloatingTabAction,
       dockFloatingWindowAction,
       dockFloatingWindowAtTabIndexAction,
+      dockFloatingWindowInFloatingAction,
+      dockFloatingTabGroupInFloatingAction,
       mergeFloatingWindowIntoFloatingAction,
       setFloatingActiveTabAction,
       selectFloatingOverflowTabAction,

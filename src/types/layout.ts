@@ -1,6 +1,6 @@
 export type PanelId = string;
 
-export type DropZone = 'left' | 'right' | 'top' | 'bottom' | 'center';
+export type DropZone = 'left' | 'right' | 'top' | 'bottom';
 
 export type PanelType = 'document' | 'auxiliary';
 
@@ -39,6 +39,8 @@ export interface FloatingWindow {
   id: string;
   activeTabId: PanelId;
   panels: PanelId[];
+  /** Internal split/tab layout when floating panel docking is enabled. */
+  layout?: LayoutNode | null;
   x: number;
   y: number;
   width: number;

@@ -178,3 +178,17 @@
   min-height: 0;
   display: flex;
 }
+
+.floating-window__body--layout {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floating-window__layout-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

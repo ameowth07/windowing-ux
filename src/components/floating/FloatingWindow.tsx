@@ -6,7 +6,10 @@ import { useScopeTabLabel } from '../../context/ScopeTabContext';
 import { useFloatDragPreview } from '../../context/FloatDragPreviewContext';
 import { useCollapsedTabBar } from '../../context/CollapsedTabBarContext';
 import { useLayout } from '../../context/LayoutContext';
-import type { DragFloatingWindowData, FloatingBodyHoverData, PanelId } from '../../types/layout';
+import type { DragFloatingWindowData, FloatingBodyHoverData, LayoutNode, PanelId } from '../../types/layout';
+import { useFloatingPanelDockingEnabled } from '../../context/FloatingPanelDockingContext';
+import { FloatingLayoutProvider } from '../../context/FloatingLayoutContext';
+import { LayoutRenderer } from '../layout/LayoutRenderer';
 import { usePanelGroupingBlocked } from '../../hooks/usePanelGroupingBlocked';
 import { isTabGroupDrag } from '../dnd/dragTypes';
 import { PanelContent } from '../panels/PanelContent';
@@ -19,6 +22,7 @@ import { TabPreview } from '../layout/TabPreview';
 import { useRegisterTabBarDragSnapshot } from '../layout/useRegisterTabBarDragSnapshot';
 import { useTabBarOverflow } from '../layout/useTabBarOverflow';
 import { FloatingWindowResizeHandles } from './FloatingWindowResizeHandles';
+import { FloatingEdgeDropZones } from './FloatingEdgeDropZones';
 import { useFloatingWindowResize } from './useFloatingWindowResize';
 import './FloatingWindow.css';
 
@@ -26,6 +30,7 @@ interface FloatingWindowProps {
   id: string;
   panels: PanelId[];
   activeTabId: PanelId;
+  layout?: LayoutNode | null;
   x: number;
   y: number;
   width: number;
@@ -39,6 +44,7 @@ export function FloatingWindow({
   id,
   panels,
   activeTabId,
+  layout = null,
   x,
   y,
   width,
@@ -47,6 +53,8 @@ export function FloatingWindow({
   isMergeTarget = false,
   dragOverlay = false,
 }: FloatingWindowProps) {
+  const floatingPanelDocking = useFloatingPanelDockingEnabled();
+  const useLayoutBody = floatingPanelDocking && layout != null;
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -111,7 +119,7 @@ export function FloatingWindow({
   const { setNodeRef: setBodyRef } = useDroppable({
     id: `floating-body-${id}`,
     data: bodyHoverData,
-    disabled: isDropBlocked || dragOverlay,
+    disabled: isDropBlocked || dragOverlay || useLayoutBody,
   });
 
   const draggedPanelId = (active?.data.current as { panelId?: PanelId } | undefined)
@@ -190,7 +198,7 @@ export function FloatingWindow({
             title="Expand tab bar"
             onClick={() => expandTabBar(id)}
           />
-        ) : (
+        ) : useLayoutBody ? null : (
           <>
         <div
           ref={tabBarRef}
@@ -243,14 +251,35 @@ export function FloatingWindow({
               nodeId={id}
               panelIds={panels}
               activePanelId={activeTabId}
+              tabBarRef={tabBarRef}
             />
           </div>
         </div>
         <div className="floating-window__tab-divider" />
           </>
         )}
-        <div className="floating-window__body">
-          <PanelContent panelId={activeTabId} />
+        <div
+          className={[
+            'floating-window__body',
+            useLayoutBody ? 'floating-window__body--layout' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {useLayoutBody && layout ? (
+            <FloatingLayoutProvider floatingWindowId={id}>
+              <div className="floating-window__layout-area">
+                <LayoutRenderer node={layout} />
+                <FloatingEdgeDropZones
+                  floatingWindowId={id}
+                  layoutRootNodeId={layout.id}
+                  panelIds={panels}
+                />
+              </div>
+            </FloatingLayoutProvider>
+          ) : (
+            <PanelContent panelId={activeTabId} />
+          )}
         </div>
       </div>
       <FloatingWindowResizeHandles

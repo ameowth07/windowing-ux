@@ -21,6 +21,7 @@ import { useEdgeDropZoneDelay } from '../../context/EdgeDropZoneDelayContext';
 import { useProjectTabBar } from '../../context/ProjectTabBarContext';
 import { useSkeletonContent } from '../../context/SkeletonContentContext';
 import { useEnforceDocumentRegion } from '../../context/EnforceDocumentRegionContext';
+import { useFloatingPanelDocking } from '../../context/FloatingPanelDockingContext';
 import type { PanelId } from '../../types/layout';
 import './DesktopSettingsMenu.css';
 
@@ -32,6 +33,8 @@ export function DesktopSettingsMenu() {
     useSkeletonContent();
   const { enabled: enforceDocumentRegion, setEnabled: setEnforceDocumentRegion } =
     useEnforceDocumentRegion();
+  const { enabled: floatingPanelDocking, setEnabled: setFloatingPanelDocking } =
+    useFloatingPanelDocking();
   const { getSize, setSize } = useAuxiliaryWindowSize();
   const { monitorCount, setMonitorCount } = useMonitorLayout();
   const [open, setOpen] = useState(false);
@@ -159,6 +162,14 @@ export function DesktopSettingsMenu() {
               onChange={(event) => setEnforceDocumentRegion(event.target.checked)}
             />
             <span>Enforce document region</span>
+          </label>
+          <label className="desktop-settings__toggle">
+            <input
+              type="checkbox"
+              checked={floatingPanelDocking}
+              onChange={(event) => setFloatingPanelDocking(event.target.checked)}
+            />
+            <span>Docking in floating panels</span>
           </label>
           <div className="desktop-settings__divider" />
           <div className="desktop-settings__heading">Edge drop zones</div>

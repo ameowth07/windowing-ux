@@ -1,6 +1,4 @@
 import { useCallback, useMemo, useState } from 'react';
-import { DropZoneVariantToggle } from '../components/layout/DropZoneVariantToggle';
-import { DropZoneVariantProvider } from '../context/DropZoneVariantContext';
 import { PreviewCanvas } from './PreviewCanvas';
 import { PropsPanel } from './PropsPanel';
 import {
@@ -91,8 +89,7 @@ export function ComponentLibrary() {
   }, [selectedStory]);
 
   return (
-    <DropZoneVariantProvider>
-      <div className="component-library">
+    <div className="component-library">
       <header className="component-library__header">
         <div className="component-library__brand">
           <span className="component-library__logo">◫</span>
@@ -104,10 +101,6 @@ export function ComponentLibrary() {
           </div>
         </div>
         <div className="component-library__header-actions">
-          <label className="component-library__zone-picker">
-            <span>Drop zones</span>
-            <DropZoneVariantToggle />
-          </label>
           <label className="component-library__background-picker">
             <span>Background</span>
             <select
@@ -203,6 +196,5 @@ export function ComponentLibrary() {
         </main>
       </div>
     </div>
-    </DropZoneVariantProvider>
   );
 }

@@ -1,6 +1,5 @@
 import { useDndContext, useDroppable } from '@dnd-kit/core';
-import { getZonesForVariant } from '../../config/dropZones';
-import { useDropZoneVariant } from '../../context/DropZoneVariantContext';
+import { PANEL_DROP_ZONES } from '../../config/dropZones';
 import { useShowDropzones } from '../../context/ShowDropzonesContext';
 import { usePanelGroupingBlocked } from '../../hooks/usePanelGroupingBlocked';
 import { isPanelDrag, isTabGroupDrag } from '../dnd/dragTypes';
@@ -17,7 +16,6 @@ interface DropZonesProps {
 function isDragOverPanelBody(
   over: ReturnType<typeof useDndContext>['over'],
   nodeId: string,
-  includeCenterZone: boolean,
 ): boolean {
   const data = over?.data.current as
     | DropTargetData
@@ -28,11 +26,7 @@ function isDragOverPanelBody(
   if (!data) return false;
   if (data.type === 'tab-insert') return false;
   if (data.type === 'panel-body-hover' && data.nodeId === nodeId) return true;
-  if (
-    data.type === 'drop-target' &&
-    data.nodeId === nodeId &&
-    (data.zone !== 'center' || includeCenterZone)
-  ) {
+  if (data.type === 'drop-target' && data.nodeId === nodeId) {
     return true;
   }
   return false;
@@ -40,7 +34,6 @@ function isDragOverPanelBody(
 
 export function DropZones({ nodeId, panelIds = [], scoped }: DropZonesProps) {
   const { active, over } = useDndContext();
-  const { variant } = useDropZoneVariant();
   const { enabled: showDropzones } = useShowDropzones();
   const isDropBlocked = usePanelGroupingBlocked(panelIds);
   const isDraggingPanel = isPanelDrag(active?.data.current);
@@ -54,23 +47,13 @@ export function DropZones({ nodeId, panelIds = [], scoped }: DropZonesProps) {
   if (!isDragging && !showDropzones) {
     return null;
   }
-  if (
-    scoped &&
-    !showDropzones &&
-    !isDragOverPanelBody(over, nodeId, isDraggingTabGroup)
-  ) {
+  if (scoped && !showDropzones && !isDragOverPanelBody(over, nodeId)) {
     return null;
   }
 
-  const zones = getZonesForVariant(variant).filter(
-    ({ zone }) => !scoped || zone !== 'center' || isDraggingTabGroup || showDropzones,
-  );
-
-  if (zones.length === 0) return null;
-
   return (
-    <div className={`drop-zones drop-zones--${variant}`}>
-      {zones.map(({ zone, label }) => (
+    <div className="drop-zones">
+      {PANEL_DROP_ZONES.map(({ zone, label }) => (
         <DropZone
           key={zone}
           nodeId={nodeId}

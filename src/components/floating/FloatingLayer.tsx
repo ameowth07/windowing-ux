@@ -110,6 +110,7 @@ export function FloatingLayer() {
           id={window.id}
           panels={window.panels}
           activeTabId={window.activeTabId}
+          layout={window.layout}
           x={window.x}
           y={window.y}
           width={window.width}

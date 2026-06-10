@@ -1,0 +1,1 @@
+export const DEFAULT_FLOATING_PANEL_DOCKING_ENABLED = false;

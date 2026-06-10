@@ -9,6 +9,33 @@ function clampHorizontalPosition(left: number, menuWidth: number): number {
   return Math.min(Math.max(left, minLeft), maxLeft);
 }
 
+export function computeContextMenuPosition(
+  clientX: number,
+  clientY: number,
+  menuWidth: number,
+  menuHeight: number,
+): { top: number; left: number } {
+  let left = clientX;
+  if (left + menuWidth > window.innerWidth - VIEWPORT_EDGE_PADDING) {
+    left = clientX - menuWidth;
+  }
+  left = clampHorizontalPosition(left, menuWidth);
+
+  let top = clientY;
+  if (top + menuHeight > window.innerHeight - VIEWPORT_EDGE_PADDING) {
+    top = clientY - menuHeight;
+  }
+  top = Math.min(
+    Math.max(top, VIEWPORT_EDGE_PADDING),
+    Math.max(
+      VIEWPORT_EDGE_PADDING,
+      window.innerHeight - VIEWPORT_EDGE_PADDING - menuHeight,
+    ),
+  );
+
+  return { top, left };
+}
+
 export function computeDropdownMenuPosition(
   anchorRect: DOMRect,
   menuWidth: number,

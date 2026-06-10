@@ -14,8 +14,14 @@ export function collectAllPanelIds(
 ): PanelId[] {
   const ids = [...collectDockedPanelIds(root)];
   for (const window of floating) {
-    for (const panelId of window.panels) {
-      ids.push(panelId);
+    if (window.layout) {
+      for (const panelId of collectDockedPanelIds(window.layout)) {
+        ids.push(panelId);
+      }
+    } else {
+      for (const panelId of window.panels) {
+        ids.push(panelId);
+      }
     }
   }
   return ids;
@@ -97,6 +103,94 @@ export function findPanelHostNode(
   return null;
 }
 
+function subtreeContainsNode(
+  node: LayoutNode,
+  predicate: (node: LayoutNode) => boolean,
+): boolean {
+  if (predicate(node)) return true;
+  if (node.type === 'split') {
+    return (
+      subtreeContainsNode(node.first, predicate) ||
+      subtreeContainsNode(node.second, predicate)
+    );
+  }
+  return false;
+}
+
+/** True when re-docking onto a layout root shell edge would not change layout. */
+function isLayoutShellEdgeDockNoOp(
+  layout: LayoutNode,
+  targetNodeId: string,
+  zone: DropZone,
+  containsSource: (node: LayoutNode) => boolean,
+): boolean {
+  if (layout.id !== targetNodeId) return false;
+
+  if (layout.type === 'panel') {
+    return containsSource(layout);
+  }
+
+  if (layout.type === 'tabs') {
+    return layout.panels.length === 1 && containsSource(layout);
+  }
+
+  if (layout.type !== 'split') {
+    return false;
+  }
+
+  const inFirst = subtreeContainsNode(layout.first, containsSource);
+  const inSecond = subtreeContainsNode(layout.second, containsSource);
+
+  if (layout.direction === 'horizontal') {
+    if (zone === 'left') return inFirst;
+    if (zone === 'right') return inSecond;
+    return false;
+  }
+
+  if (zone === 'top') return inFirst;
+  if (zone === 'bottom') return inSecond;
+  return false;
+}
+
+export function isPanelShellEdgeDockNoOp(
+  layout: LayoutNode,
+  panelId: PanelId,
+  targetNodeId: string,
+  zone: DropZone,
+): boolean {
+  return isLayoutShellEdgeDockNoOp(
+    layout,
+    targetNodeId,
+    zone,
+    (node) => findPanelHostNode(node, panelId) != null,
+  );
+}
+
+export function isLayoutNodeShellEdgeDockNoOp(
+  layout: LayoutNode,
+  sourceNodeId: string,
+  targetNodeId: string,
+  zone: DropZone,
+): boolean {
+  if (layout.id !== targetNodeId) return false;
+
+  // The tab group is the entire layout — shell-edge docking should split, not no-op.
+  if (layout.type === 'tabs' && layout.id === sourceNodeId) {
+    return false;
+  }
+
+  if (layout.type === 'panel' && layout.id === sourceNodeId) {
+    return true;
+  }
+
+  return isLayoutShellEdgeDockNoOp(
+    layout,
+    targetNodeId,
+    zone,
+    (node) => findNodeById(node, sourceNodeId) != null,
+  );
+}
+
 function wrapWithSplit(
   existing: LayoutNode,
   panelId: PanelId,
@@ -161,52 +255,41 @@ function wrapWithSplitNode(
   };
 }
 
-function collectPanelsFromNode(node: LayoutNode): PanelId[] {
-  if (node.type === 'panel') return [node.panelId];
-  if (node.type === 'tabs') return [...node.panels];
-  return [];
-}
-
-function getActivePanelId(node: LayoutNode): PanelId {
-  if (node.type === 'panel') return node.panelId;
-  if (node.type === 'tabs') return node.activeTabId;
-  throw new Error('Cannot resolve active panel from split node');
-}
-
-function mergeIncomingIntoHost(host: LayoutNode, incoming: LayoutNode): LayoutNode {
-  let result = host;
-  for (const panelId of collectPanelsFromNode(incoming)) {
-    result = mergeIntoTabsAtIndex(result, panelId, Number.MAX_SAFE_INTEGER);
-  }
-  const preferredActive = getActivePanelId(incoming);
-  if (result.type === 'tabs' && result.panels.includes(preferredActive)) {
-    return { ...result, activeTabId: preferredActive };
-  }
-  return result;
-}
-
-function insertNodeAtTarget(
+function insertLayoutNodeAtTarget(
   node: LayoutNode,
   targetNodeId: string,
   zone: DropZone,
   incoming: LayoutNode,
 ): LayoutNode {
   if (node.id === targetNodeId) {
-    if (zone === 'center') {
-      return mergeIncomingIntoHost(node, incoming);
-    }
     return wrapWithSplitNode(node, incoming, zone);
   }
 
   if (node.type === 'split') {
     return {
       ...node,
-      first: insertNodeAtTarget(node.first, targetNodeId, zone, incoming),
-      second: insertNodeAtTarget(node.second, targetNodeId, zone, incoming),
+      first: insertLayoutNodeAtTarget(node.first, targetNodeId, zone, incoming),
+      second: insertLayoutNodeAtTarget(node.second, targetNodeId, zone, incoming),
     };
   }
 
   return node;
+}
+
+export function dockLayoutNodeIntoRoot(
+  root: LayoutNode | null,
+  incoming: LayoutNode,
+  targetNodeId: string,
+  zone: DropZone,
+): LayoutNode | null {
+  if (targetNodeId === '__workspace_root__') {
+    if (!root) return incoming;
+    return wrapWithSplitNode(root, incoming, zone);
+  }
+
+  if (!root) return incoming;
+
+  return insertLayoutNodeAtTarget(root, targetNodeId, zone, incoming);
 }
 
 export function floatingWindowToLayoutNode(
@@ -229,29 +312,28 @@ export function floatingWindowToLayoutNode(
   };
 }
 
+export function getFloatingWindowLayoutNode(window: FloatingWindow): LayoutNode {
+  if (window.layout) return window.layout;
+  return floatingWindowToLayoutNode(window.panels, window.activeTabId);
+}
+
 export function dockFloatingWindow(
   root: LayoutNode | null,
   panels: PanelId[],
   activeTabId: PanelId,
   targetNodeId: string,
   zone: DropZone,
+  layout?: LayoutNode | null,
 ): LayoutNode | null {
-  const incoming = floatingWindowToLayoutNode(panels, activeTabId);
+  const incoming =
+    layout ?? floatingWindowToLayoutNode(panels, activeTabId);
 
   let withoutPanels = root;
   for (const panelId of panels) {
     withoutPanels = removePanelFromTree(withoutPanels, panelId);
   }
 
-  if (targetNodeId === '__workspace_root__') {
-    if (!withoutPanels) return incoming;
-    if (zone === 'center') return incoming;
-    return wrapWithSplitNode(withoutPanels, incoming, zone);
-  }
-
-  if (!withoutPanels) return incoming;
-
-  return insertNodeAtTarget(withoutPanels, targetNodeId, zone, incoming);
+  return dockLayoutNodeIntoRoot(withoutPanels, incoming, targetNodeId, zone);
 }
 
 export function extractTabGroup(
@@ -289,10 +371,10 @@ export function removeLayoutNodeFromTree(
   return root;
 }
 
-function removePanelsFromFloating<T extends { panels: PanelId[]; activeTabId: PanelId }>(
-  floating: T[],
+function removePanelsFromFloating(
+  floating: FloatingWindow[],
   panelIds: PanelId[],
-): T[] {
+): FloatingWindow[] {
   return panelIds.reduce(
     (current, panelId) => removePanelFromFloating(current, panelId),
     floating,
@@ -321,14 +403,12 @@ export function dockTabGroupAtTabIndex(
   return result;
 }
 
-export function mergeTabGroupIntoFloating<
-  T extends { id: string; panels: PanelId[]; activeTabId: PanelId },
->(
+export function mergeTabGroupIntoFloating(
   root: LayoutNode | null,
-  floating: T[],
+  floating: FloatingWindow[],
   nodeId: string,
   floatingWindowId: string,
-): { root: LayoutNode | null; floating: T[] } {
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
   const node = findNodeById(root, nodeId);
   const group = extractTabGroup(node);
   const target = floating.find((window) => window.id === floatingWindowId);
@@ -337,6 +417,39 @@ export function mergeTabGroupIntoFloating<
   }
   if (group.panels.every((panelId) => target.panels.includes(panelId))) {
     return { root, floating };
+  }
+
+  if (target.layout) {
+    const migratedTarget = migrateFloatingWindowToLayout(target);
+    const targetNodeId =
+      findFirstDockTarget(migratedTarget.layout ?? null) ??
+      migratedTarget.layout?.id;
+    if (!targetNodeId || !migratedTarget.layout) {
+      return { root, floating };
+    }
+
+    const nextRoot = removeLayoutNodeFromTree(root, nodeId);
+    let nextFloating = floating.map((window) =>
+      window.id === floatingWindowId ? migratedTarget : window,
+    );
+    for (const panelId of group.panels) {
+      nextFloating = removePanelFromFloating(nextFloating, panelId);
+    }
+
+    const incoming = floatingWindowToLayoutNode(group.panels, group.activeTabId);
+    const newLayout = insertLayoutNodeAtTarget(
+      migratedTarget.layout,
+      targetNodeId,
+      'right',
+      incoming,
+    );
+    nextFloating = updateFloatingWindowLayout(
+      nextFloating,
+      floatingWindowId,
+      newLayout,
+    );
+
+    return { root: nextRoot, floating: nextFloating };
   }
 
   const nextRoot = removeLayoutNodeFromTree(root, nodeId);
@@ -418,32 +531,32 @@ function insertPanelAtTabIndex(
   return node;
 }
 
-function mergeIntoTabs(node: LayoutNode, panelId: PanelId): LayoutNode {
-  return mergeIntoTabsAtIndex(node, panelId, Number.MAX_SAFE_INTEGER);
-}
-
-function insertPanelAtTarget(
-  node: LayoutNode,
+function insertIncomingAtTarget(
+  layoutBeforeRemoval: LayoutNode | null,
+  layoutAfterRemoval: LayoutNode,
   targetNodeId: string,
   zone: DropZone,
-  panelId: PanelId,
+  incoming: LayoutNode,
 ): LayoutNode {
-  if (node.id === targetNodeId) {
-    if (zone === 'center') {
-      return mergeIntoTabs(node, panelId);
-    }
-    return wrapWithSplit(node, panelId, zone);
+  if (findNodeById(layoutAfterRemoval, targetNodeId)) {
+    return insertLayoutNodeAtTarget(
+      layoutAfterRemoval,
+      targetNodeId,
+      zone,
+      incoming,
+    );
   }
 
-  if (node.type === 'split') {
-    return {
-      ...node,
-      first: insertPanelAtTarget(node.first, targetNodeId, zone, panelId),
-      second: insertPanelAtTarget(node.second, targetNodeId, zone, panelId),
-    };
+  if (layoutBeforeRemoval && findNodeById(layoutBeforeRemoval, targetNodeId)) {
+    return wrapWithSplitNode(layoutAfterRemoval, incoming, zone);
   }
 
-  return node;
+  return insertLayoutNodeAtTarget(
+    layoutAfterRemoval,
+    targetNodeId,
+    zone,
+    incoming,
+  );
 }
 
 export function dockPanel(
@@ -461,10 +574,16 @@ export function dockPanel(
   }
 
   const hostNode = findPanelHostNode(root, panelId);
+  if (
+    root.id === targetNodeId &&
+    isPanelShellEdgeDockNoOp(root, panelId, targetNodeId, zone)
+  ) {
+    return root;
+  }
   if (hostNode?.id === targetNodeId) {
-    // Same container: no-op for tab-group merge or lone panel self-drop.
+    // Same container: no-op for lone panel self-drop.
     // Split zones on a tab group peel the dragged tab out into a new pane.
-    if (zone === 'center' || hostNode.type === 'panel') {
+    if (hostNode.type === 'panel') {
       return root;
     }
     if (hostNode.type === 'tabs' && hostNode.panels.length === 1) {
@@ -481,7 +600,6 @@ export function dockPanel(
 
   if (targetNodeId === '__workspace_root__') {
     if (!withoutPanel) return incoming;
-    if (zone === 'center') return incoming;
     return wrapWithSplit(withoutPanel, panelId, zone);
   }
 
@@ -489,7 +607,13 @@ export function dockPanel(
     return incoming;
   }
 
-  return insertPanelAtTarget(withoutPanel, targetNodeId, zone, panelId);
+  return insertIncomingAtTarget(
+    root,
+    withoutPanel,
+    targetNodeId,
+    zone,
+    incoming,
+  );
 }
 
 export function dockPanelAtTabIndex(
@@ -521,7 +645,7 @@ export function dockPanelAtTabIndex(
   const withoutPanel = removePanelFromTree(root, panelId);
   const targetNode = findNodeById(withoutPanel, targetNodeId);
   if (!targetNode || (targetNode.type !== 'panel' && targetNode.type !== 'tabs')) {
-    return withoutPanel ?? root;
+    return root;
   }
 
   if (!withoutPanel) {
@@ -572,8 +696,13 @@ export function addDocumentToFloatingWindow(
   }
 
   const instanceId = createDocumentPanelInstanceId(basePanelId, existingPanelIds);
+  if (target.panels.includes(instanceId)) {
+    return floating;
+  }
+
+  const floatingWithoutPanel = removePanelFromFloating(floating, instanceId);
   return mergePanelIntoFloatingWindow(
-    floating,
+    floatingWithoutPanel,
     floatingWindowId,
     instanceId,
     target.panels.length,
@@ -891,12 +1020,18 @@ export function findFirstDockTarget(node: LayoutNode | null): string | null {
   return findFirstDockTarget(node.first) ?? findFirstDockTarget(node.second);
 }
 
-export function removePanelFromFloating<T extends { panels: PanelId[]; activeTabId: PanelId }>(
-  floating: T[],
+export function removePanelFromFloating(
+  floating: FloatingWindow[],
   panelId: PanelId,
-): T[] {
+): FloatingWindow[] {
   return floating
     .map((window) => {
+      if (window.layout) {
+        const layout = removePanelFromTree(window.layout, panelId);
+        if (!layout) return null;
+        return syncFloatingWindowPanels({ ...window, layout });
+      }
+
       if (!window.panels.includes(panelId)) return window;
       const panels = window.panels.filter((id) => id !== panelId);
       if (panels.length === 0) return null;
@@ -908,7 +1043,7 @@ export function removePanelFromFloating<T extends { panels: PanelId[]; activeTab
           : panels[0],
       };
     })
-    .filter((window): window is T => window !== null);
+    .filter((window): window is FloatingWindow => window !== null);
 }
 
 export function swapFloatingPanels<T extends {
@@ -939,18 +1074,30 @@ export function swapFloatingPanels<T extends {
   });
 }
 
-export function mergePanelIntoFloatingWindow<T extends {
-  id: string;
-  panels: PanelId[];
-  activeTabId: PanelId;
-}>(
-  floating: T[],
+export function mergePanelIntoFloatingWindow(
+  floating: FloatingWindow[],
   floatingWindowId: string,
   panelId: PanelId,
   index: number,
-): T[] {
+): FloatingWindow[] {
   return floating.map((window) => {
     if (window.id !== floatingWindowId) return window;
+
+    if (window.layout) {
+      const migrated = migrateFloatingWindowToLayout(window);
+      const layout = migrated.layout;
+      if (!layout) return window;
+
+      const targetNodeId = findFirstDockTarget(layout) ?? layout.id;
+      const newLayout = dockPanelAtTabIndex(
+        layout,
+        panelId,
+        targetNodeId,
+        index,
+      );
+      return syncFloatingWindowPanels({ ...window, layout: newLayout });
+    }
+
     const panels = window.panels.filter((id) => id !== panelId);
     const insertAt = clampIndex(index, 0, panels.length);
     const nextPanels = [
@@ -966,14 +1113,12 @@ export function mergePanelIntoFloatingWindow<T extends {
   });
 }
 
-export function mergeFloatingWindowIntoFloating<
-  T extends { id: string; panels: PanelId[]; activeTabId: PanelId },
->(
-  floating: T[],
+export function mergeFloatingWindowIntoFloating(
+  floating: FloatingWindow[],
   sourceWindowId: string,
   targetWindowId: string,
   index?: number,
-): T[] {
+): FloatingWindow[] {
   const source = floating.find((window) => window.id === sourceWindowId);
   if (!source || sourceWindowId === targetWindowId) return floating;
 
@@ -1010,9 +1155,38 @@ export function dockFloatingWindowAtTabIndex(
   floatingWindowId: string,
   targetNodeId: string,
   index: number,
+  tabGroupNodeId?: string,
 ): { root: LayoutNode | null; floating: FloatingWindow[] } {
+  if (tabGroupNodeId) {
+    return dockFloatingTabGroupAtTabIndex(
+      root,
+      floating,
+      floatingWindowId,
+      tabGroupNodeId,
+      targetNodeId,
+      index,
+    );
+  }
+
   const source = floating.find((window) => window.id === floatingWindowId);
   if (!source) return { root, floating };
+
+  if (source.layout) {
+    const panelIds = [...collectDockedPanelIds(source.layout)];
+    let nextRoot = root;
+    for (let i = 0; i < panelIds.length; i++) {
+      nextRoot = dockPanelAtTabIndex(
+        nextRoot,
+        panelIds[i],
+        targetNodeId,
+        index + i,
+      );
+    }
+    return {
+      root: nextRoot,
+      floating: floating.filter((window) => window.id !== floatingWindowId),
+    };
+  }
 
   let nextRoot = root;
   for (let i = 0; i < source.panels.length; i++) {
@@ -1030,6 +1204,141 @@ export function dockFloatingWindowAtTabIndex(
   };
 }
 
+function finalizeFloatingTabGroupDock(
+  root: LayoutNode | null,
+  floating: FloatingWindow[],
+  source: FloatingWindow,
+  group: { panels: PanelId[]; activeTabId: PanelId },
+  nextLayout: LayoutNode | null,
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
+  let nextFloating = floating.filter((window) => window.id !== source.id);
+  for (const panelId of group.panels) {
+    nextFloating = removePanelFromFloating(nextFloating, panelId);
+  }
+  if (nextLayout) {
+    nextFloating = [
+      ...nextFloating,
+      syncFloatingWindowPanels({ ...source, layout: nextLayout }),
+    ];
+  }
+  return { root, floating: nextFloating };
+}
+
+export function dockFloatingTabGroupToRoot(
+  root: LayoutNode | null,
+  floating: FloatingWindow[],
+  floatingWindowId: string,
+  tabGroupNodeId: string,
+  targetNodeId: string,
+  zone: DropZone,
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
+  const source = floating.find((window) => window.id === floatingWindowId);
+  if (!source?.layout) {
+    return {
+      root: dockFloatingWindow(
+        root,
+        source?.panels ?? [],
+        source?.activeTabId ?? tabGroupNodeId,
+        targetNodeId,
+        zone,
+        source?.layout,
+      ),
+      floating: floating.filter((window) => window.id !== floatingWindowId),
+    };
+  }
+
+  const migrated = migrateFloatingWindowToLayout(source);
+  const layout = migrated.layout;
+  if (!layout) {
+    return { root, floating };
+  }
+
+  const groupNode = findNodeById(layout, tabGroupNodeId);
+  const group = extractTabGroup(groupNode);
+  if (!group) {
+    return { root, floating };
+  }
+
+  const incoming = floatingWindowToLayoutNode(group.panels, group.activeTabId);
+  const nextLayout = removeLayoutNodeFromTree(layout, tabGroupNodeId);
+
+  let nextRoot = root;
+  for (const panelId of group.panels) {
+    nextRoot = removePanelFromTree(nextRoot, panelId);
+  }
+  nextRoot = dockLayoutNodeIntoRoot(nextRoot, incoming, targetNodeId, zone);
+
+  return finalizeFloatingTabGroupDock(
+    nextRoot,
+    floating,
+    source,
+    group,
+    nextLayout,
+  );
+}
+
+export function dockFloatingTabGroupAtTabIndex(
+  root: LayoutNode | null,
+  floating: FloatingWindow[],
+  floatingWindowId: string,
+  tabGroupNodeId: string,
+  targetNodeId: string,
+  index: number,
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
+  const source = floating.find((window) => window.id === floatingWindowId);
+  if (!source?.layout) {
+    return dockFloatingWindowAtTabIndex(
+      root,
+      floating,
+      floatingWindowId,
+      targetNodeId,
+      index,
+    );
+  }
+
+  const migrated = migrateFloatingWindowToLayout(source);
+  const layout = migrated.layout;
+  if (!layout) {
+    return { root, floating };
+  }
+
+  const groupNode = findNodeById(layout, tabGroupNodeId);
+  const group = extractTabGroup(groupNode);
+  if (!group) {
+    return { root, floating };
+  }
+
+  let nextRoot = root;
+  for (let i = 0; i < group.panels.length; i++) {
+    nextRoot = dockPanelAtTabIndex(
+      nextRoot,
+      group.panels[i],
+      targetNodeId,
+      index + i,
+    );
+  }
+
+  const nextLayout = removeLayoutNodeFromTree(layout, tabGroupNodeId);
+  return finalizeFloatingTabGroupDock(
+    nextRoot,
+    floating,
+    source,
+    group,
+    nextLayout,
+  );
+}
+
+export function isFloatingLayoutTabGroupNode(
+  floating: FloatingWindow[],
+  floatingWindowId: string,
+  nodeId: string,
+): boolean {
+  if (nodeId === floatingWindowId) return false;
+  const source = floating.find((window) => window.id === floatingWindowId);
+  if (!source?.layout) return false;
+  return extractTabGroup(findNodeById(source.layout, nodeId)) != null;
+}
+
 export function isFloatingTabInsertNoOp(
   floating: Array<{ id: string; panels: PanelId[] }>,
   floatingWindowId: string,
@@ -1042,15 +1351,13 @@ export function isFloatingTabInsertNoOp(
   return index === currentIndex || index === currentIndex + 1;
 }
 
-export function mergeFloatingTabUpdate<
-  T extends { id: string; panels: PanelId[]; activeTabId: PanelId },
->(
+export function mergeFloatingTabUpdate(
   root: LayoutNode | null,
-  floating: T[],
+  floating: FloatingWindow[],
   floatingWindowId: string,
   panelId: PanelId,
   index: number,
-): { root: LayoutNode | null; floating: T[] } {
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
   const targetWindow = floating.find((window) => window.id === floatingWindowId);
   if (!targetWindow) {
     return { root, floating };
@@ -1061,6 +1368,30 @@ export function mergeFloatingTabUpdate<
   if (sourceWindow?.id === floatingWindowId) {
     if (isFloatingTabInsertNoOp(floating, floatingWindowId, panelId, index)) {
       return { root, floating };
+    }
+
+    if (sourceWindow.layout) {
+      const migrated = migrateFloatingWindowToLayout(sourceWindow);
+      const layout = migrated.layout;
+      if (!layout) return { root, floating };
+
+      const hostNode = findPanelHostNode(layout, panelId);
+      if (!hostNode) return { root, floating };
+
+      const newLayout = dockPanelAtTabIndex(
+        layout,
+        panelId,
+        hostNode.id,
+        index,
+      );
+      return {
+        root,
+        floating: floating.map((window) =>
+          window.id === floatingWindowId
+            ? syncFloatingWindowPanels({ ...window, layout: newLayout, activeTabId: panelId })
+            : window,
+        ),
+      };
     }
 
     const currentIndex = sourceWindow.panels.indexOf(panelId);
@@ -1101,4 +1432,465 @@ export function isFloatingWindowId(
   nodeId: string,
 ): boolean {
   return floating.some((window) => window.id === nodeId);
+}
+
+export function isDockTargetInRoot(
+  root: LayoutNode | null,
+  targetNodeId: string,
+): boolean {
+  if (targetNodeId === '__workspace_root__') return true;
+  return findNodeById(root, targetNodeId) != null;
+}
+
+export function resolveFloatingWindowForTabGroupDrag(
+  floating: FloatingWindow[],
+  nodeId: string,
+): FloatingWindow | null {
+  const byWindowId = floating.find((window) => window.id === nodeId);
+  if (byWindowId) return byWindowId;
+  return findFloatingWindowByLayoutNodeId(floating, nodeId);
+}
+
+export function findFloatingWindowByLayoutNodeId(
+  floating: FloatingWindow[],
+  nodeId: string,
+): FloatingWindow | null {
+  for (const window of floating) {
+    if (window.layout && findNodeById(window.layout, nodeId)) {
+      return window;
+    }
+  }
+  return null;
+}
+
+export function findFloatingWindowBySplitId(
+  floating: FloatingWindow[],
+  splitId: string,
+): FloatingWindow | null {
+  for (const window of floating) {
+    if (window.layout && findSplitNode(window.layout, splitId)) {
+      return window;
+    }
+  }
+  return null;
+}
+
+export function syncFloatingWindowPanels(
+  window: FloatingWindow,
+): FloatingWindow {
+  if (!window.layout) return window;
+
+  const panelIds = [...collectDockedPanelIds(window.layout)];
+  if (panelIds.length === 0) return window;
+
+  return {
+    ...window,
+    panels: panelIds,
+    activeTabId: panelIds.includes(window.activeTabId)
+      ? window.activeTabId
+      : panelIds[0],
+  };
+}
+
+export function migrateFloatingWindowToLayout(
+  window: FloatingWindow,
+): FloatingWindow {
+  if (window.layout) return syncFloatingWindowPanels(window);
+  return syncFloatingWindowPanels({
+    ...window,
+    layout: floatingWindowToLayoutNode(window.panels, window.activeTabId),
+  });
+}
+
+function updateFloatingWindowLayout(
+  floating: FloatingWindow[],
+  floatingWindowId: string,
+  layout: LayoutNode | null,
+): FloatingWindow[] {
+  return floating
+    .map((window) => {
+      if (window.id !== floatingWindowId) return window;
+      if (!layout) return null;
+      return syncFloatingWindowPanels({ ...window, layout });
+    })
+    .filter((window): window is FloatingWindow => window !== null);
+}
+
+function removePanelFromAllFloats(
+  floating: FloatingWindow[],
+  panelId: PanelId,
+): FloatingWindow[] {
+  return removePanelFromFloating(floating, panelId);
+}
+
+function removePanelFromOtherFloats(
+  floating: FloatingWindow[],
+  panelId: PanelId,
+  exceptWindowId: string,
+): FloatingWindow[] {
+  return floating
+    .map((window) => {
+      if (window.id === exceptWindowId) return window;
+      if (!window.panels.includes(panelId)) return window;
+      const updated = removePanelFromFloating([window], panelId);
+      return updated[0] ?? null;
+    })
+    .filter((window): window is FloatingWindow => window !== null);
+}
+
+export function dockPanelInFloating(
+  root: LayoutNode | null,
+  floating: FloatingWindow[],
+  panelId: PanelId,
+  targetNodeId: string,
+  zone: DropZone,
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
+  if (isDockTargetInRoot(root, targetNodeId)) {
+    return {
+      root: dockPanel(root, panelId, targetNodeId, zone),
+      floating: removePanelFromAllFloats(floating, panelId),
+    };
+  }
+
+  const floatWindow = findFloatingWindowByLayoutNodeId(floating, targetNodeId);
+  if (!floatWindow) {
+    return {
+      root: dockPanel(root, panelId, targetNodeId, zone),
+      floating: removePanelFromAllFloats(floating, panelId),
+    };
+  }
+
+  const migrated = migrateFloatingWindowToLayout(floatWindow);
+  if (migrated.layout) {
+    const noOpLayout = dockPanel(
+      migrated.layout,
+      panelId,
+      targetNodeId,
+      zone,
+    );
+    if (noOpLayout === migrated.layout) {
+      return { root, floating };
+    }
+  }
+
+  let nextRoot = removePanelFromTree(root, panelId);
+  let nextFloating = floating.map((window) =>
+    window.id === floatWindow.id ? migrated : window,
+  );
+  nextFloating = removePanelFromOtherFloats(
+    nextFloating,
+    panelId,
+    floatWindow.id,
+  );
+
+  const target = nextFloating.find((window) => window.id === floatWindow.id);
+  if (!target?.layout) {
+    return { root: nextRoot, floating: nextFloating };
+  }
+
+  const newLayout = dockPanel(target.layout, panelId, targetNodeId, zone);
+  nextFloating = updateFloatingWindowLayout(
+    nextFloating,
+    floatWindow.id,
+    newLayout,
+  );
+  return { root: nextRoot, floating: nextFloating };
+}
+
+export function dockPanelInFloatingAtTabIndex(
+  root: LayoutNode | null,
+  floating: FloatingWindow[],
+  panelId: PanelId,
+  targetNodeId: string,
+  index: number,
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
+  if (isDockTargetInRoot(root, targetNodeId)) {
+    return {
+      root: dockPanelAtTabIndex(root, panelId, targetNodeId, index),
+      floating: removePanelFromAllFloats(floating, panelId),
+    };
+  }
+
+  const floatWindow = findFloatingWindowByLayoutNodeId(floating, targetNodeId);
+  if (!floatWindow) {
+    return {
+      root: dockPanelAtTabIndex(root, panelId, targetNodeId, index),
+      floating: removePanelFromAllFloats(floating, panelId),
+    };
+  }
+
+  const migrated = migrateFloatingWindowToLayout(floatWindow);
+  if (migrated.layout) {
+    const noOpLayout = dockPanelAtTabIndex(
+      migrated.layout,
+      panelId,
+      targetNodeId,
+      index,
+    );
+    if (noOpLayout === migrated.layout) {
+      return { root, floating };
+    }
+  }
+
+  let nextRoot = removePanelFromTree(root, panelId);
+  let nextFloating = floating.map((window) =>
+    window.id === floatWindow.id ? migrated : window,
+  );
+  nextFloating = removePanelFromOtherFloats(
+    nextFloating,
+    panelId,
+    floatWindow.id,
+  );
+
+  const target = nextFloating.find((window) => window.id === floatWindow.id);
+  if (!target?.layout) {
+    return { root: nextRoot, floating: nextFloating };
+  }
+
+  const newLayout = dockPanelAtTabIndex(
+    target.layout,
+    panelId,
+    targetNodeId,
+    index,
+  );
+  nextFloating = updateFloatingWindowLayout(
+    nextFloating,
+    floatWindow.id,
+    newLayout,
+  );
+  return { root: nextRoot, floating: nextFloating };
+}
+
+export function dockTabGroupInFloating(
+  root: LayoutNode | null,
+  floating: FloatingWindow[],
+  sourceNodeId: string,
+  targetNodeId: string,
+  zone: DropZone,
+): { root: LayoutNode | null; floating: FloatingWindow[] } {
+  const floatWindow = findFloatingWindowByLayoutNodeId(floating, targetNodeId);
+  const sourceNode = findNodeById(root, sourceNodeId);
+  const group = extractTabGroup(sourceNode);
+  if (!floatWindow || !group) {
+    return { root, floating };
+  }
+
+  let nextRoot = removeLayoutNodeFromTree(root, sourceNodeId);
+  let nextFloating = floating.map((window) =>
+    window.id === floatWindow.id ? migrateFloatingWindowToLayout(window) : window,
+  );
+  for (const panelId of group.panels) {
+    nextRoot = removePanelFromTree(nextRoot, panelId);
+    nextFloating = removePanelFromAllFloats(nextFloating, panelId);
+  }
+
+  const target = nextFloating.find((window) => window.id === floatWindow.id);
+  if (!target?.layout) {
+    return { root: nextRoot, floating: nextFloating };
+  }
+
+  const incoming = floatingWindowToLayoutNode(group.panels, group.activeTabId);
+  const layoutBeforeRemoval = target.layout;
+  const newLayout = insertIncomingAtTarget(
+    layoutBeforeRemoval,
+    target.layout,
+    targetNodeId,
+    zone,
+    incoming,
+  );
+  nextFloating = updateFloatingWindowLayout(
+    nextFloating,
+    floatWindow.id,
+    newLayout,
+  );
+  return { root: nextRoot, floating: nextFloating };
+}
+
+export function dockFloatingWindowInFloating(
+  floating: FloatingWindow[],
+  sourceWindowId: string,
+  targetNodeId: string,
+  zone: DropZone,
+): FloatingWindow[] {
+  const source = floating.find((window) => window.id === sourceWindowId);
+  const targetFloat = findFloatingWindowByLayoutNodeId(floating, targetNodeId);
+  if (!source || !targetFloat || source.id === targetFloat.id) {
+    return floating;
+  }
+
+  const incoming = getFloatingWindowLayoutNode(source);
+  let next = floating.filter((window) => window.id !== sourceWindowId);
+  next = next.map((window) =>
+    window.id === targetFloat.id ? migrateFloatingWindowToLayout(window) : window,
+  );
+
+  const target = next.find((window) => window.id === targetFloat.id);
+  if (!target?.layout) return next;
+
+  const newLayout = insertLayoutNodeAtTarget(
+    target.layout,
+    targetNodeId,
+    zone,
+    incoming,
+  );
+  return updateFloatingWindowLayout(next, targetFloat.id, newLayout);
+}
+
+export function dockFloatingTabGroupInFloating(
+  floating: FloatingWindow[],
+  sourceWindowId: string,
+  tabGroupNodeId: string,
+  targetNodeId: string,
+  zone: DropZone,
+): FloatingWindow[] {
+  const source = floating.find((window) => window.id === sourceWindowId);
+  if (!source?.layout) return floating;
+
+  const targetFloat = findFloatingWindowByLayoutNodeId(floating, targetNodeId);
+  if (!targetFloat) return floating;
+
+  const migratedSource = migrateFloatingWindowToLayout(source);
+  const sourceLayout = migratedSource.layout;
+  if (!sourceLayout) return floating;
+
+  const group = extractTabGroup(findNodeById(sourceLayout, tabGroupNodeId));
+  if (!group) return floating;
+
+  if (
+    sourceWindowId === targetFloat.id &&
+    isLayoutNodeShellEdgeDockNoOp(
+      sourceLayout,
+      tabGroupNodeId,
+      targetNodeId,
+      zone,
+    )
+  ) {
+    return floating;
+  }
+
+  const incoming = floatingWindowToLayoutNode(group.panels, group.activeTabId);
+  const nextSourceLayout = removeLayoutNodeFromTree(sourceLayout, tabGroupNodeId);
+  const targetWasLayoutRoot = sourceLayout.id === targetNodeId;
+
+  let next = floating.map((window) =>
+    window.id === sourceWindowId ? migratedSource : window,
+  );
+
+  next = next
+    .map((window) => {
+      if (window.id !== sourceWindowId) return window;
+      if (!nextSourceLayout) return null;
+      return syncFloatingWindowPanels({ ...window, layout: nextSourceLayout });
+    })
+    .filter((window): window is FloatingWindow => window !== null);
+
+  next = next.map((window) =>
+    window.id === targetFloat.id ? migrateFloatingWindowToLayout(window) : window,
+  );
+
+  const target = next.find((window) => window.id === targetFloat.id);
+  if (!target?.layout) return next;
+
+  const resolvedTargetNodeId =
+    sourceWindowId === targetFloat.id && targetWasLayoutRoot && nextSourceLayout
+      ? nextSourceLayout.id
+      : targetNodeId;
+
+  const layoutBeforeRemoval = sourceLayout;
+  const newTargetLayout = insertIncomingAtTarget(
+    layoutBeforeRemoval,
+    target.layout,
+    resolvedTargetNodeId,
+    zone,
+    incoming,
+  );
+  return updateFloatingWindowLayout(next, targetFloat.id, newTargetLayout);
+}
+
+export function applyLocalizedSplitResizeInFloating(
+  floating: FloatingWindow[],
+  splitId: string,
+  deltaPx: number,
+  containerInnerSize: number,
+): FloatingWindow[] {
+  const floatWindow = findFloatingWindowBySplitId(floating, splitId);
+  if (!floatWindow?.layout) return floating;
+
+  const newLayout = applyLocalizedSplitResize(
+    floatWindow.layout,
+    splitId,
+    deltaPx,
+    containerInnerSize,
+  );
+  if (!newLayout) return floating;
+
+  return floating.map((window) =>
+    window.id === floatWindow.id
+      ? syncFloatingWindowPanels({ ...window, layout: newLayout })
+      : window,
+  );
+}
+
+export function setSplitRatioInFloating(
+  floating: FloatingWindow[],
+  splitId: string,
+  ratio: number,
+): FloatingWindow[] {
+  const floatWindow = findFloatingWindowBySplitId(floating, splitId);
+  if (!floatWindow?.layout) return floating;
+  const { layout } = floatWindow;
+
+  return floating.map((window) =>
+    window.id === floatWindow.id
+      ? syncFloatingWindowPanels({
+          ...window,
+          layout: setSplitRatio(layout, splitId, ratio),
+        })
+      : window,
+  );
+}
+
+export function setActiveTabInFloating(
+  floating: FloatingWindow[],
+  tabGroupId: string,
+  panelId: PanelId,
+): FloatingWindow[] {
+  const floatWindow = findFloatingWindowByLayoutNodeId(floating, tabGroupId);
+  if (!floatWindow?.layout) return floating;
+  const { layout } = floatWindow;
+
+  return floating.map((window) =>
+    window.id === floatWindow.id
+      ? syncFloatingWindowPanels({
+          ...window,
+          layout: setActiveTab(layout, tabGroupId, panelId),
+        })
+      : window,
+  );
+}
+
+export function swapTabGroupPanelsInFloating(
+  floating: FloatingWindow[],
+  tabGroupId: string,
+  panelIdA: PanelId,
+  panelIdB: PanelId,
+  activeTabId?: PanelId,
+): FloatingWindow[] {
+  const floatWindow = findFloatingWindowByLayoutNodeId(floating, tabGroupId);
+  if (!floatWindow?.layout) return floating;
+
+  const layout = swapTabGroupPanels(
+    floatWindow.layout,
+    tabGroupId,
+    panelIdA,
+    panelIdB,
+    activeTabId,
+  );
+  if (!layout) return floating;
+
+  return floating.map((window) =>
+    window.id === floatWindow.id
+      ? syncFloatingWindowPanels({ ...window, layout })
+      : window,
+  );
 }
