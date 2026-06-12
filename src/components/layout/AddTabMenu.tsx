@@ -14,7 +14,6 @@ interface AddTabMenuProps {
   nestedPortalRef?: RefObject<HTMLDivElement | null>;
   onAddPanel: (panelId: PanelId) => void;
   onClose: () => void;
-  floatingMode?: boolean;
 }
 
 export function AddTabMenu({
@@ -24,7 +23,6 @@ export function AddTabMenu({
   nestedPortalRef,
   onAddPanel,
   onClose,
-  floatingMode = false,
 }: AddTabMenuProps) {
   const studio2026 = useStudio2026Enabled();
   const menuCategories = useMemo(
@@ -160,9 +158,11 @@ export function AddTabMenu({
         {activeCategory ? (
           <div className="studio-menu studio-menu--auto" role="menu">
             {activeCategory.items.map((item) => {
-              const isChecked =
-                !floatingMode &&
-                isAddTabMenuItemOpen(item.panelId, openPanelIds, studio2026);
+              const isChecked = isAddTabMenuItemOpen(
+                item.panelId,
+                openPanelIds,
+                studio2026,
+              );
 
               return (
                 <button

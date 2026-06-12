@@ -17,6 +17,7 @@
   display: flex;
   flex-direction: column;
   min-width: 288px;
+  min-height: 200px;
   border: 1px solid var(--stroke-emphasis);
   border-radius: var(--aux-window-radius);
   box-shadow: var(--shadow-transient-low);
@@ -25,13 +26,34 @@
   background: var(--bg-surface-0);
 }
 
+.dependent-window--resizing {
+  user-select: none;
+}
+
+.dependent-window--resizing .aux-window-title-bar {
+  cursor: inherit;
+}
+
 .dependent-window__body {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-surface-0);
   overflow: auto;
+}
+
+.dependent-window__dialog-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: auto;
+  background: var(--dialog-scrim);
+}
+
+.dependent-window--dialog-chrome-locked .dependent-window__footer {
+  pointer-events: none;
 }
 
 .dependent-window__footer {

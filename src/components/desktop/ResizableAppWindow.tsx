@@ -9,7 +9,7 @@ import {
   type WindowSizePreset,
 } from '../../config/windowSizes';
 import { useAppWindow } from '../../context/AppWindowContext';
-import { useDialogModalOpen } from '../../context/DialogModalContext';
+import { useDialogInteractionLocked } from '../../context/DialogModalContext';
 import { useMonitorLayout } from '../../context/MonitorLayoutContext';
 import { usePrimaryWindows } from '../../context/PrimaryWindowsContext';
 import { clampPrimaryWindowBounds } from '../../utils/primaryWindowPosition';
@@ -66,7 +66,7 @@ export function ResizableAppWindow({
   children,
 }: ResizableAppWindowProps) {
   const { sizePreset } = useAppWindow();
-  const isDialogModalOpen = useDialogModalOpen();
+  const isDialogInteractionLocked = useDialogInteractionLocked();
   const { monitorCount } = useMonitorLayout();
   const { getWindow, updateWindowBounds, startWindowDrag } = usePrimaryWindows();
   const windowRef = useRef<HTMLDivElement>(null);
@@ -119,11 +119,11 @@ export function ResizableAppWindow({
 
   const handleWindowDragStart = useCallback(
     (event: React.MouseEvent) => {
-      if (disabled || isDialogModalOpen) return;
+      if (disabled) return;
       const target = event.target as HTMLElement;
       if (
         target.closest(
-          'button, input, a, .dialog-window-scrim, .save-layout-dialog__panel, .dependent-window-layer',
+          'button, input, a, .dialog-window-scrim, .save-layout-dialog-layer, .dependent-window-layer',
         )
       ) {
         return;
@@ -131,12 +131,12 @@ export function ResizableAppWindow({
       event.preventDefault();
       startWindowDrag(windowId, event.clientX, event.clientY);
     },
-    [disabled, isDialogModalOpen, startWindowDrag, windowId],
+    [disabled, startWindowDrag, windowId],
   );
 
   const startResize = useCallback(
     (edge: ResizeEdge, event: React.MouseEvent) => {
-      if (isDialogModalOpen) return;
+      if (isDialogInteractionLocked) return;
       event.preventDefault();
       event.stopPropagation();
       resizeRef.current = {
@@ -146,7 +146,7 @@ export function ResizableAppWindow({
         orig: bounds,
       };
     },
-    [bounds, isDialogModalOpen],
+    [bounds, isDialogInteractionLocked],
   );
 
   useEffect(() => {
@@ -192,11 +192,16 @@ export function ResizableAppWindow({
   return (
     <div
       ref={windowRef}
-      className="resizable-app-window"
+      className={[
+        'resizable-app-window',
+        isDialogInteractionLocked ? 'resizable-app-window--dialog-chrome-locked' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       data-primary-window-id={windowId}
     >
       {content}
-      <DialogWindowScrim />
+      <DialogWindowScrim variant="primary" />
       {edges.map((edge) => (
         <div
           key={edge}

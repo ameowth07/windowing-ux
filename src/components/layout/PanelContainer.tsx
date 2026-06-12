@@ -104,15 +104,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
         .filter(Boolean)
         .join(' ')}
     >
-      {isCollapsed ? (
-        <button
-          type="button"
-          className="panel-container__expand-tab-bar"
-          aria-label="Expand tab bar"
-          title="Expand tab bar"
-          onClick={() => expandTabBar(node.id)}
-        />
-      ) : (
+      {isCollapsed ? null : (
         <>
       <div
         ref={tabBarRef}
@@ -179,6 +171,15 @@ export function PanelContainer({ node }: PanelContainerProps) {
         <PanelContent panelId={activePanelId} />
         <DropZones nodeId={node.id} panelIds={panelIds} scoped />
       </div>
+      {isCollapsed ? (
+        <button
+          type="button"
+          className="panel-container__expand-tab-bar"
+          aria-label="Expand tab bar"
+          title="Expand tab bar"
+          onClick={() => expandTabBar(node.id)}
+        />
+      ) : null}
     </div>
   );
 }

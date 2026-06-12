@@ -7,6 +7,7 @@ import type { PanelId } from '../../types/layout';
 import { getPanelGroupType } from '../../utils/panelGrouping';
 import { AddDocumentMenu } from './AddDocumentMenu';
 import { AddTabMenu } from './AddTabMenu';
+import { STUDIO_2026_SCRIPT_DOCUMENT_MENU_ITEMS } from '../../data/documentPanels';
 import { TransientMenuPortal } from './TransientMenuPortal';
 import '../StudioMenu.css';
 import './PanelTabBarMenu.css';
@@ -229,73 +230,71 @@ export function PanelTabBarMenu({
             <span className="studio-menu__item-label">Collapse Tab</span>
           </button>
           <div className="studio-menu__divider" role="separator" />
-          <button
-            ref={addTabRef}
-            type="button"
-            role="menuitem"
-            className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-tab' ? 'studio-menu__item--submenu-open' : ''}`}
-            aria-haspopup="menu"
-            aria-expanded={activeSubmenu === 'add-tab'}
-            aria-disabled={addTabDisabled}
-            disabled={addTabDisabled}
-            onMouseEnter={() => openSubmenu('add-tab')}
-            onMouseLeave={scheduleSubmenuClose}
-            onFocus={() => openSubmenu('add-tab')}
-            onClick={(event) => {
-              event.stopPropagation();
-              openSubmenu('add-tab');
-            }}
-          >
-            <span className="studio-menu__item-label">Add Tab</span>
-            <span className="studio-menu__item-chevron" aria-hidden="true">
-              <ChevronRightIcon />
-            </span>
-          </button>
           {!studio2026 ? (
             <button
-              ref={addDocumentRef}
+              ref={addTabRef}
               type="button"
               role="menuitem"
-              className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
+              className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-tab' ? 'studio-menu__item--submenu-open' : ''}`}
               aria-haspopup="menu"
-              aria-expanded={activeSubmenu === 'add-document'}
-              aria-disabled={addDocumentDisabled}
-              disabled={addDocumentDisabled}
-              onMouseEnter={() => openSubmenu('add-document')}
+              aria-expanded={activeSubmenu === 'add-tab'}
+              aria-disabled={addTabDisabled}
+              disabled={addTabDisabled}
+              onMouseEnter={() => openSubmenu('add-tab')}
               onMouseLeave={scheduleSubmenuClose}
-              onFocus={() => openSubmenu('add-document')}
+              onFocus={() => openSubmenu('add-tab')}
               onClick={(event) => {
                 event.stopPropagation();
-                openSubmenu('add-document');
+                openSubmenu('add-tab');
               }}
             >
-              <span className="studio-menu__item-label">Add New Document</span>
+              <span className="studio-menu__item-label">Add Tab</span>
               <span className="studio-menu__item-chevron" aria-hidden="true">
                 <ChevronRightIcon />
               </span>
             </button>
           ) : null}
+          <button
+            ref={addDocumentRef}
+            type="button"
+            role="menuitem"
+            className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
+            aria-haspopup="menu"
+            aria-expanded={activeSubmenu === 'add-document'}
+            aria-disabled={addDocumentDisabled}
+            disabled={addDocumentDisabled}
+            onMouseEnter={() => openSubmenu('add-document')}
+            onMouseLeave={scheduleSubmenuClose}
+            onFocus={() => openSubmenu('add-document')}
+            onClick={(event) => {
+              event.stopPropagation();
+              openSubmenu('add-document');
+            }}
+          >
+            <span className="studio-menu__item-label">Add New Document</span>
+            <span className="studio-menu__item-chevron" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+          </button>
         </div>
       </TransientMenuPortal>
 
-      <AddTabMenu
-        open={open && activeSubmenu === 'add-tab' && !addTabDisabled}
-        anchorRef={addTabRef}
-        portalRef={addTabMenuRef}
-        nestedPortalRef={addTabNestedMenuRef}
-        onAddPanel={handleAddPanel}
-        onClose={closeMenu}
-      />
+      {!studio2026 ? (
+        <AddTabMenu
+          open={open && activeSubmenu === 'add-tab' && !addTabDisabled}
+          anchorRef={addTabRef}
+          portalRef={addTabMenuRef}
+          nestedPortalRef={addTabNestedMenuRef}
+          onAddPanel={handleAddPanel}
+          onClose={closeMenu}
+        />
+      ) : null}
 
       <AddDocumentMenu
-        open={
-          !studio2026 &&
-          open &&
-          activeSubmenu === 'add-document' &&
-          !addDocumentDisabled
-        }
+        open={open && activeSubmenu === 'add-document' && !addDocumentDisabled}
         anchorRef={addDocumentRef}
         portalRef={addDocumentMenuRef}
+        items={studio2026 ? STUDIO_2026_SCRIPT_DOCUMENT_MENU_ITEMS : undefined}
         onAddPanel={handleAddDocument}
         onClose={closeMenu}
       />

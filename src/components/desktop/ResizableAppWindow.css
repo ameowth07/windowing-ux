@@ -10,6 +10,19 @@
   background: var(--bg-surface-100);
 }
 
+.resizable-app-window--dialog-chrome-locked .app-bar__brand,
+.resizable-app-window--dialog-chrome-locked .app-bar__menu,
+.resizable-app-window--dialog-chrome-locked .app-bar__controls-frame,
+.resizable-app-window--dialog-chrome-locked .app-bar__utilities,
+.resizable-app-window--dialog-chrome-locked .app-bar__test-controls,
+.resizable-app-window--dialog-chrome-locked .app-bar__window-controls,
+.resizable-app-window--dialog-chrome-locked .app-bar-scope-tabs,
+.resizable-app-window--dialog-chrome-locked .app-bar-studio2026 > :not(.app-bar),
+.resizable-app-window--dialog-chrome-locked .app-footer,
+.resizable-app-window--dialog-chrome-locked .pane-gutter {
+  pointer-events: none;
+}
+
 .resizable-app-window__resize {
   position: absolute;
   z-index: 30;

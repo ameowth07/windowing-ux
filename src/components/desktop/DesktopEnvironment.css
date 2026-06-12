@@ -150,7 +150,10 @@
 .gallery-desktop__windows > .primary-window-stack .floating-layer > *,
 .desktop__monitor-windows > .dependent-window-layer .dependent-window,
 .desktop__windows > .dependent-window-layer .dependent-window,
-.gallery-desktop__windows > .dependent-window-layer .dependent-window {
+.gallery-desktop__windows > .dependent-window-layer .dependent-window,
+.desktop__monitor-windows > .save-layout-dialog-layer .save-layout-dialog__panel,
+.desktop__windows > .save-layout-dialog-layer .save-layout-dialog__panel,
+.gallery-desktop__windows > .save-layout-dialog-layer .save-layout-dialog__panel {
   pointer-events: auto;
 }
 

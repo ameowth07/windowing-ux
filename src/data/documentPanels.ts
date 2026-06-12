@@ -13,3 +13,9 @@ export const DOCUMENT_MENU_ITEMS: DocumentMenuItem[] = [
   { id: 'script', label: 'Script' },
   { id: 'ui', label: 'UI' },
 ];
+
+export const STUDIO_2026_SCRIPT_DOCUMENT_MENU_ITEMS: DocumentMenuItem[] = [
+  { id: 'script', label: 'Script' },
+  { id: 'modulescript', label: 'ModuleScript' },
+  { id: 'localscript', label: 'LocalScript' },
+];

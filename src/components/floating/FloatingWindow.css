@@ -45,12 +45,8 @@
   cursor: grabbing;
 }
 
-.floating-window__app-bar--locked {
-  cursor: default;
-}
-
-.floating-window__app-bar--locked:active {
-  cursor: default;
+.floating-window--dialog-chrome-locked .floating-window__window-controls {
+  pointer-events: none;
 }
 
 .floating-window__title {

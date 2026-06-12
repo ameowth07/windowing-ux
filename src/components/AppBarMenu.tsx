@@ -73,7 +73,13 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
   const [windowSubmenu, setWindowSubmenu] = useState<WindowMenuSubmenu>(null);
 
   const toggle = () => setOpen((current) => !current);
-  const close = () => setOpen(false);
+  const close = () => {
+    clearSubmenuCloseTimer();
+    clearWindowSubmenuCloseTimer();
+    setOpen(false);
+    setActiveSubmenu(null);
+    setWindowSubmenu(null);
+  };
   const menuActive = variant === 'flat' || open;
 
   const clearSubmenuCloseTimer = () => {
@@ -253,18 +259,13 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (variant === 'flat') {
-          setActiveSubmenu(null);
-          setWindowSubmenu(null);
-          return;
-        }
         close();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [menuActive, variant]);
+  }, [menuActive]);
 
   useEffect(() => {
     return () => {
@@ -524,7 +525,6 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
         nestedPortalRef={addTabNestedMenuRef}
         onAddPanel={handleAddPanel}
         onClose={close}
-        floatingMode
       />
 
       <AddDocumentMenu

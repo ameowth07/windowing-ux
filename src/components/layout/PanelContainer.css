@@ -93,16 +93,21 @@
 }
 
 .panel-container__expand-tab-bar {
-  flex-shrink: 0;
-  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   height: 6px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
+  opacity: 0;
 }
 
 .panel-container__expand-tab-bar:hover {
+  opacity: 1;
   background: var(--highlight-200);
 }
 

@@ -10,7 +10,7 @@ import {
 import { useProjectName } from './AppWindowContext';
 import type { LayoutState } from '../types/layout';
 import type { SavedLayout } from '../types/savedLayout';
-import { cloneLayoutState } from '../utils/cloneLayoutState';
+import { createSavedLayoutSnapshot } from '../utils/savedLayoutSnapshot';
 
 interface SavedLayoutsContextValue {
   savedLayouts: SavedLayout[];
@@ -63,7 +63,7 @@ export function SavedLayoutsProvider({ children }: { children: ReactNode }) {
       const entry: SavedLayout = {
         id: createLayoutId(),
         name: trimmed,
-        state: cloneLayoutState(state),
+        state: createSavedLayoutSnapshot(state),
         savedAt: Date.now(),
       };
 

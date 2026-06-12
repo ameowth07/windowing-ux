@@ -347,6 +347,15 @@ function AnimationSkeleton() {
   );
 }
 
+const SCRIPT_DOCUMENT_PANEL_IDS = new Set(['script', 'modulescript', 'localscript']);
+
+function getPanelSkeletonThemeId(baseId: string): string {
+  if (SCRIPT_DOCUMENT_PANEL_IDS.has(baseId)) {
+    return 'script';
+  }
+  return baseId;
+}
+
 const PANEL_SKELETONS: Record<string, () => ReactNode> = {
   toolbox: ToolboxSkeleton,
   'asset-manager': AssetManagerSkeleton,
@@ -372,7 +381,8 @@ export function PanelContent({
     isScopeTabEmptyPlace(scopeTabId, scopeTabs.tabs);
   const placeVariant =
     baseId === 'place' ? getPlaceSkeletonVariant(scopeTabId) : null;
-  const Skeleton = PANEL_SKELETONS[baseId] ?? GenericSkeleton;
+  const skeletonThemeId = getPanelSkeletonThemeId(baseId);
+  const Skeleton = PANEL_SKELETONS[skeletonThemeId] ?? GenericSkeleton;
 
   if (isEmptyPlace || !skeletonEnabled) {
     return (
@@ -389,7 +399,7 @@ export function PanelContent({
         className={[
           'panel-content__body',
           'panel-content__body--skeleton',
-          `panel-content__body--${baseId}`,
+          `panel-content__body--${skeletonThemeId}`,
           placeVariant ? `panel-content__body--place-${placeVariant}` : '',
         ]
           .filter(Boolean)

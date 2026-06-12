@@ -18,6 +18,20 @@ const DOCUMENT_PANELS: Record<string, PanelDefinition> = {
     icon: 'script',
     skeleton: true,
   },
+  modulescript: {
+    id: 'modulescript',
+    title: 'ModuleScript',
+    panelType: 'document',
+    icon: 'script',
+    skeleton: true,
+  },
+  localscript: {
+    id: 'localscript',
+    title: 'LocalScript',
+    panelType: 'document',
+    icon: 'script',
+    skeleton: true,
+  },
   avatar: {
     id: 'avatar',
     title: 'Avatar',

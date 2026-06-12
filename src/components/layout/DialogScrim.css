@@ -5,3 +5,7 @@
   pointer-events: auto;
   background: var(--dialog-scrim);
 }
+
+.dialog-window-scrim--below-chrome {
+  top: var(--dialog-window-scrim-inset-top, 0);
+}

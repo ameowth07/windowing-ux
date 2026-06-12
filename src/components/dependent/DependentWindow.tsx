@@ -6,9 +6,10 @@ import { usePrimaryWindowIdOptional } from '../../context/PrimaryWindowContext';
 import { useProjectName } from '../../context/AppWindowContext';
 import { usePrimaryWindows } from '../../context/PrimaryWindowsContext';
 import { useStudio2026Enabled } from '../../context/Studio2026Context';
-import { useRegisterDialogModal } from '../../context/DialogModalContext';
+import { useDialogInteractionLocked } from '../../context/DialogModalContext';
 import { getWindowContainerElement } from '../../utils/monitorSpace';
 import { AuxiliaryWindowTitleBar } from './AuxiliaryWindowTitleBar';
+import { DependentWindowResizeHandles } from './DependentWindowResizeHandles';
 import {
   getCenteredDependentWindowPosition,
   useDependentWindowDrag,
@@ -20,7 +21,6 @@ interface DependentWindowProps {
   title: string;
   width?: number;
   height?: number;
-  modal?: boolean;
   onClose: () => void;
   children?: ReactNode;
   footer?: ReactNode;
@@ -38,7 +38,6 @@ export function DependentWindow({
   title,
   width = 480,
   height = 560,
-  modal = false,
   onClose,
   children,
   footer,
@@ -46,6 +45,7 @@ export function DependentWindow({
   const windowId = usePrimaryWindowIdOptional();
   const placeName = useProjectName();
   const studio2026 = useStudio2026Enabled();
+  const isDialogInteractionLocked = useDialogInteractionLocked();
   const displayTitle = studio2026 ? placeName : title;
   const { getWindow } = usePrimaryWindows();
   const { monitorCount } = useMonitorLayout();
@@ -86,16 +86,15 @@ export function DependentWindow({
     [open, container, primaryWindowElement, width, height],
   );
 
-  const { position, onTitleBarPointerDown } = useDependentWindowDrag({
-    open,
-    container,
-    width,
-    height,
-    initialPosition,
-    enabled: open && !modal,
-  });
-
-  useRegisterDialogModal(open && modal);
+  const { bounds, onTitleBarPointerDown, startResize, isResizing } =
+    useDependentWindowDrag({
+      open,
+      container,
+      width,
+      height,
+      initialPosition,
+      enabled: open,
+    });
 
   useEffect(() => {
     if (!open) return;
@@ -110,7 +109,7 @@ export function DependentWindow({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
-  if (!open || !portalRoot || !position) return null;
+  if (!open || !portalRoot || !bounds) return null;
 
   return createPortal(
     <div
@@ -125,19 +124,38 @@ export function DependentWindow({
       onPointerDown={(event) => event.stopPropagation()}
     >
       <div
-        className="dependent-window"
-        style={{ left: position.x, top: position.y, width, height }}
+        className={[
+          'dependent-window',
+          isResizing ? 'dependent-window--resizing' : '',
+          isDialogInteractionLocked ? 'dependent-window--dialog-chrome-locked' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={{
+          left: bounds.x,
+          top: bounds.y,
+          width: bounds.width,
+          height: bounds.height,
+        }}
         role="dialog"
-        aria-modal={modal || undefined}
         aria-labelledby={`dependent-window-title-${displayTitle.replace(/\s+/g, '-')}`}
       >
         <AuxiliaryWindowTitleBar
           title={displayTitle}
           onClose={onClose}
-          onTitleBarPointerDown={modal ? undefined : onTitleBarPointerDown}
+          onTitleBarPointerDown={onTitleBarPointerDown}
+          chromeLocked={isDialogInteractionLocked}
         />
-        <div className="dependent-window__body">{children}</div>
+        <div className="dependent-window__body">
+          {children}
+          {isDialogInteractionLocked ? (
+            <div className="dependent-window__dialog-scrim" aria-hidden="true" />
+          ) : null}
+        </div>
         {footer ? <div className="dependent-window__footer">{footer}</div> : null}
+        <DependentWindowResizeHandles
+          onResizeStart={isDialogInteractionLocked ? undefined : startResize}
+        />
       </div>
     </div>,
     portalRoot,

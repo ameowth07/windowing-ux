@@ -5,7 +5,7 @@ import { useProjectTabBarEnabled } from '../../context/ProjectTabBarContext';
 import { useScopeTabLabel } from '../../context/ScopeTabContext';
 import { useFloatDragPreview } from '../../context/FloatDragPreviewContext';
 import { useCollapsedTabBar } from '../../context/CollapsedTabBarContext';
-import { useDialogModalOpen } from '../../context/DialogModalContext';
+import { useDialogInteractionLocked } from '../../context/DialogModalContext';
 import { useLayout } from '../../context/LayoutContext';
 import type { DragFloatingWindowData, FloatingBodyHoverData, LayoutNode, PanelId } from '../../types/layout';
 import { useFloatingPanelDockingEnabled } from '../../context/FloatingPanelDockingContext';
@@ -72,7 +72,7 @@ export function FloatingWindow({
   const isCollapsed = isTabBarCollapsed(id);
   const isAnyDragActive = active != null;
   const isDropBlocked = usePanelGroupingBlocked(panels);
-  const isDialogModalOpen = useDialogModalOpen();
+  const isDialogInteractionLocked = useDialogInteractionLocked();
   const { visiblePanelIds, overflowPanelIds } = useTabBarOverflow(
     tabBarRef,
     measureRef,
@@ -112,7 +112,7 @@ export function FloatingWindow({
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `float-window-${id}`,
     data: dragData,
-    disabled: dragOverlay || isDialogModalOpen,
+    disabled: dragOverlay,
   });
 
   const bodyHoverData: FloatingBodyHoverData = {
@@ -145,18 +145,22 @@ export function FloatingWindow({
 
   return (
     <div
-      className={`floating-window ${isMergeTarget ? 'floating-window--merge-target' : ''} ${isDropBlocked ? 'floating-window--drop-blocked' : ''} ${isResizing ? 'floating-window--resizing' : ''}`}
+      className={[
+        'floating-window',
+        isMergeTarget ? 'floating-window--merge-target' : '',
+        isDropBlocked ? 'floating-window--drop-blocked' : '',
+        isResizing ? 'floating-window--resizing' : '',
+        isDialogInteractionLocked ? 'floating-window--dialog-chrome-locked' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{ left: x, top: y, width, height }}
     >
       <div
         ref={setNodeRef}
-        className={[
-          'floating-window__app-bar',
-          isDialogModalOpen ? 'floating-window__app-bar--locked' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        {...(isDialogModalOpen ? {} : { ...listeners, ...attributes })}
+        className="floating-window__app-bar"
+        {...listeners}
+        {...attributes}
       >
         <div className="floating-window__title">{windowTitle}</div>
         <div
@@ -290,9 +294,9 @@ export function FloatingWindow({
         </div>
       </div>
       <FloatingWindowResizeHandles
-        onResizeStart={dragOverlay || isDialogModalOpen ? undefined : startResize}
+        onResizeStart={dragOverlay || isDialogInteractionLocked ? undefined : startResize}
       />
-      <DialogWindowScrim />
+      <DialogWindowScrim variant="auxiliary" />
     </div>
   );
 }

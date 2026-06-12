@@ -19,7 +19,6 @@ export function SaveProjectDialog({ open, onSave, onClose }: SaveProjectDialogPr
       title="Save Project"
       width={480}
       height={560}
-      modal
       onClose={onClose}
       footer={
         <DialogButtonGroup

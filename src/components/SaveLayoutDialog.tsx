@@ -1,8 +1,16 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogInputFocus } from '../hooks/useDialogInputFocus';
-import { useRegisterDialogModal } from '../context/DialogModalContext';
+import { useRegisterBlockingDialog } from '../context/DialogModalContext';
+import { useMonitorLayout } from '../context/MonitorLayoutContext';
+import { useMonitorWindows } from '../context/MonitorWindowsContext';
 import { usePrimaryWindowIdOptional } from '../context/PrimaryWindowContext';
+import { usePrimaryWindows } from '../context/PrimaryWindowsContext';
+import {
+  getDesktopPortalRoot,
+  getPrimaryWindowBoundsInContainer,
+  type ContainerBounds,
+} from '../utils/desktopPortalRoot';
 import { DialogButtonGroup } from './layout/DialogButtonGroup';
 import './layout/StudioTextInput.css';
 import './SaveLayoutDialog.css';
@@ -13,34 +21,54 @@ interface SaveLayoutDialogProps {
   onClose: () => void;
 }
 
-function getPrimaryWindowModalRoot(windowId: string | null): HTMLElement | null {
-  if (!windowId) return null;
-  return (
-    document.querySelector<HTMLElement>(
-      `.resizable-app-window[data-primary-window-id="${windowId}"]`,
-    )?.parentElement ?? null
-  );
-}
-
 export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProps) {
   const labelId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const windowId = usePrimaryWindowIdOptional();
-  const [panelRoot, setPanelRoot] = useState<HTMLElement | null>(null);
+  const { getWindow } = usePrimaryWindows();
+  const { monitorCount } = useMonitorLayout();
+  const { getContainerElement } = useMonitorWindows();
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  const [layerFrame, setLayerFrame] = useState<ContainerBounds | null>(null);
   const [name, setName] = useState('');
-  const isInPrimaryWindow = panelRoot !== null && panelRoot !== document.body;
+  const isOnDesktop = portalRoot !== null && portalRoot !== document.body;
 
   useLayoutEffect(() => {
     if (!open) {
-      setPanelRoot(null);
+      setPortalRoot(null);
+      setLayerFrame(null);
       return;
     }
 
-    setPanelRoot(getPrimaryWindowModalRoot(windowId) ?? document.body);
-  }, [open, windowId]);
+    const monitorIndex = windowId ? (getWindow(windowId)?.monitorIndex ?? 0) : 0;
+    setPortalRoot(
+      getDesktopPortalRoot(monitorIndex, monitorCount, getContainerElement),
+    );
+  }, [open, windowId, getWindow, getContainerElement, monitorCount]);
 
-  useDialogInputFocus(open, panelRoot != null, inputRef);
-  useRegisterDialogModal(open);
+  useLayoutEffect(() => {
+    if (!open || !portalRoot) {
+      setLayerFrame(null);
+      return;
+    }
+
+    const updateLayerFrame = () => {
+      setLayerFrame(getPrimaryWindowBoundsInContainer(windowId, portalRoot));
+    };
+
+    updateLayerFrame();
+    const raf = requestAnimationFrame(updateLayerFrame);
+    window.addEventListener('resize', updateLayerFrame);
+    window.addEventListener('scroll', updateLayerFrame, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updateLayerFrame);
+      window.removeEventListener('scroll', updateLayerFrame, true);
+    };
+  }, [open, portalRoot, windowId]);
+
+  useDialogInputFocus(open, portalRoot != null, inputRef);
+  useRegisterBlockingDialog(open);
 
   useEffect(() => {
     if (!open) {
@@ -58,7 +86,7 @@ export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProp
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open, onClose]);
 
-  if (!open || !panelRoot) return null;
+  if (!open || !portalRoot || !layerFrame) return null;
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -74,55 +102,66 @@ export function SaveLayoutDialog({ open, onSave, onClose }: SaveLayoutDialogProp
   return createPortal(
     <div
       className={[
-        'save-layout-dialog__panel',
-        isInPrimaryWindow ? 'save-layout-dialog__panel--in-window' : '',
+        'save-layout-dialog-layer',
+        isOnDesktop ? 'save-layout-dialog-layer--on-desktop' : '',
       ]
         .filter(Boolean)
         .join(' ')}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={labelId}
+      style={{
+        left: layerFrame.left,
+        top: layerFrame.top,
+        width: layerFrame.width,
+        height: layerFrame.height,
+      }}
+      role="presentation"
       onMouseDown={stopPointerPropagation}
       onPointerDown={stopPointerPropagation}
     >
-      <button
-        type="button"
-        className="save-layout-dialog__close"
-        aria-label="Close"
-        onClick={onClose}
+      <div
+        className="save-layout-dialog__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelId}
       >
-        <CloseIcon />
-      </button>
+        <button
+          type="button"
+          className="save-layout-dialog__close"
+          aria-label="Close"
+          onClick={onClose}
+        >
+          <CloseIcon />
+        </button>
 
-      <form className="save-layout-dialog__form" onSubmit={handleSubmit}>
-        <div className="save-layout-dialog__body">
-          <label className="save-layout-dialog__field" htmlFor={labelId}>
-            <span className="save-layout-dialog__label">Layout name</span>
-            <input
-              ref={inputRef}
-              id={labelId}
-              type="text"
-              className="studio-text-input save-layout-dialog__input"
-              placeholder="Name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoComplete="off"
+        <form className="save-layout-dialog__form" onSubmit={handleSubmit}>
+          <div className="save-layout-dialog__body">
+            <label className="save-layout-dialog__field" htmlFor={labelId}>
+              <span className="save-layout-dialog__label">Layout name</span>
+              <input
+                ref={inputRef}
+                id={labelId}
+                type="text"
+                className="studio-text-input save-layout-dialog__input"
+                placeholder="Name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete="off"
+              />
+            </label>
+          </div>
+
+          <div className="save-layout-dialog__actions">
+            <DialogButtonGroup
+              primaryLabel="Save"
+              primaryType="submit"
+              onPrimary={() => {}}
+              onCancel={onClose}
+              primaryDisabled={!name.trim()}
             />
-          </label>
-        </div>
-
-        <div className="save-layout-dialog__actions">
-          <DialogButtonGroup
-            primaryLabel="Save"
-            primaryType="submit"
-            onPrimary={() => {}}
-            onCancel={onClose}
-            primaryDisabled={!name.trim()}
-          />
-        </div>
-      </form>
+          </div>
+        </form>
+      </div>
     </div>,
-    panelRoot,
+    portalRoot,
   );
 }
 
