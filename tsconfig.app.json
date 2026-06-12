@@ -6,6 +6,8 @@
     "module": "esnext",
     "types": ["vite/client"],
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -14,6 +16,10 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "paths": {
+      "@mdi/legacy-ribbon": ["./packages/legacy-ribbon/src/index.ts"],
+      "@mdi/legacy-ribbon/tokens.css": ["./packages/legacy-ribbon/src/tokens.css"]
+    },
 
     /* Linting */
     "noUnusedLocals": true,
@@ -21,5 +27,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src", "packages/legacy-ribbon/src"]
 }

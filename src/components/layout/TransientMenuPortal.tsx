@@ -133,7 +133,9 @@ export function TransientMenuPortal({
 interface TransientSubmenuPortalProps {
   open: boolean;
   anchorRef: React.RefObject<HTMLElement | null>;
+  placement?: 'side' | 'below';
   offsetX?: number;
+  offsetY?: number;
   repositionKey?: string | number | null;
   children: ReactNode;
   portalRef?: React.RefObject<HTMLDivElement | null>;
@@ -144,7 +146,9 @@ interface TransientSubmenuPortalProps {
 export function TransientSubmenuPortal({
   open,
   anchorRef,
+  placement = 'side',
   offsetX = 4,
+  offsetY = 4,
   repositionKey,
   children,
   portalRef,
@@ -164,7 +168,10 @@ export function TransientSubmenuPortal({
 
     const anchorRect = anchor.getBoundingClientRect();
     const menuWidth = menu?.offsetWidth ?? 0;
-    const next = computeSubmenuPosition(anchorRect, menuWidth, offsetX, anchor);
+    const next =
+      placement === 'below'
+        ? computeDropdownMenuPosition(anchorRect, menuWidth, 'start', offsetY)
+        : computeSubmenuPosition(anchorRect, menuWidth, offsetX, anchor);
     setPosition((current) =>
       current?.top === next.top && current?.left === next.left ? current : next,
     );
@@ -181,7 +188,7 @@ export function TransientSubmenuPortal({
     updatePosition();
     const raf = requestAnimationFrame(updatePosition);
     return () => cancelAnimationFrame(raf);
-  }, [open, anchorRef, offsetX, menuRef, repositionKey]);
+  }, [open, anchorRef, placement, offsetX, offsetY, menuRef, repositionKey]);
 
   useEffect(() => {
     if (!open) return;
@@ -195,7 +202,7 @@ export function TransientSubmenuPortal({
       window.removeEventListener('resize', handleReposition);
       window.removeEventListener('scroll', handleReposition, true);
     };
-  }, [open, anchorRef, offsetX, menuRef, repositionKey]);
+  }, [open, anchorRef, placement, offsetX, offsetY, menuRef, repositionKey]);
 
   if (!open) return null;
 

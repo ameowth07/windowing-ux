@@ -31,14 +31,15 @@ type AppBarMenuSubmenu = 'file' | 'window' | null;
 type WindowMenuSubmenu = 'add-tab' | 'add-document' | 'open-layout' | null;
 
 interface AppBarMenuProps {
-  children: (props: {
+  variant?: 'dropdown' | 'flat';
+  children?: (props: {
     open: boolean;
     toggle: () => void;
     triggerRef: RefObject<HTMLButtonElement | null>;
   }) => ReactNode;
 }
 
-export function AppBarMenu({ children }: AppBarMenuProps) {
+export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) {
   const { createNewProject, openRecentProject } = useScopeTabs();
   const { floatPanel, state, setLayoutState } = useLayout();
   const { getSize: getAuxiliaryWindowSize } = useAuxiliaryWindowSize();
@@ -73,6 +74,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
 
   const toggle = () => setOpen((current) => !current);
   const close = () => setOpen(false);
+  const menuActive = variant === 'flat' || open;
 
   const clearSubmenuCloseTimer = () => {
     if (submenuCloseTimerRef.current !== null) {
@@ -240,24 +242,29 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
   };
 
   useEffect(() => {
-    if (!open) {
+    if (!menuActive) {
       setActiveSubmenu(null);
       setWindowSubmenu(null);
     }
-  }, [open]);
+  }, [menuActive]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!menuActive) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        if (variant === 'flat') {
+          setActiveSubmenu(null);
+          setWindowSubmenu(null);
+          return;
+        }
         close();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [menuActive, variant]);
 
   useEffect(() => {
     return () => {
@@ -270,105 +277,153 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
     };
   }, []);
 
+  const renderTopLevelMenuItem = (item: (typeof APP_BAR_MENU_ITEMS)[number]) => {
+    const flatItemClass = (isOpen: boolean) =>
+      [
+        'app-bar__menu-item',
+        isOpen ? 'app-bar__menu-item--open' : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+    if (item.id === 'file') {
+      return (
+        <button
+          key={item.id}
+          ref={fileMenuRef}
+          type="button"
+          className={
+            variant === 'flat'
+              ? flatItemClass(activeSubmenu === 'file')
+              : `studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'file' ? 'studio-menu__item--submenu-open' : ''}`
+          }
+          role="menuitem"
+          aria-haspopup="menu"
+          aria-expanded={activeSubmenu === 'file'}
+          onMouseEnter={() => openSubmenu('file')}
+          onMouseLeave={scheduleSubmenuClose}
+          onFocus={() => openSubmenu('file')}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            openSubmenu('file');
+          }}
+        >
+          <span className={variant === 'flat' ? undefined : 'studio-menu__item-label'}>
+            {item.label}
+          </span>
+          {variant === 'dropdown' ? (
+            <span className="studio-menu__item-chevron" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+          ) : null}
+        </button>
+      );
+    }
+
+    if (item.id === 'window') {
+      return (
+        <button
+          key={item.id}
+          ref={windowMenuRef}
+          type="button"
+          className={
+            variant === 'flat'
+              ? flatItemClass(activeSubmenu === 'window')
+              : `studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'window' ? 'studio-menu__item--submenu-open' : ''}`
+          }
+          role="menuitem"
+          aria-haspopup="menu"
+          aria-expanded={activeSubmenu === 'window'}
+          onMouseEnter={() => openSubmenu('window')}
+          onMouseLeave={scheduleSubmenuClose}
+          onFocus={() => openSubmenu('window')}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            openSubmenu('window');
+          }}
+        >
+          <span className={variant === 'flat' ? undefined : 'studio-menu__item-label'}>
+            {item.label}
+          </span>
+          {variant === 'dropdown' ? (
+            <span className="studio-menu__item-chevron" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+          ) : null}
+        </button>
+      );
+    }
+
+    return (
+      <button
+        key={item.id}
+        type="button"
+        className={
+          variant === 'flat'
+            ? 'app-bar__menu-item'
+            : 'studio-menu__item studio-menu__item--submenu'
+        }
+        role="menuitem"
+        aria-haspopup={variant === 'dropdown' ? 'menu' : undefined}
+        onMouseEnter={() => {
+          setActiveSubmenu(null);
+          setWindowSubmenu(null);
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={() => {
+          if (variant === 'dropdown') {
+            close();
+          }
+        }}
+      >
+        <span className={variant === 'flat' ? undefined : 'studio-menu__item-label'}>
+          {item.label}
+        </span>
+        {variant === 'dropdown' ? (
+          <span className="studio-menu__item-chevron" aria-hidden="true">
+            <ChevronRightIcon />
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
   return (
     <>
-      {children({ open, toggle, triggerRef })}
-      <TransientMenuPortal
-        open={open}
-        anchorRef={triggerRef}
-        align="start"
-        portalRef={menuPortalRef}
-        ignoreRefs={[
-          fileSubmenuRef,
-          fileRecentMenuRef,
-          windowSubmenuRef,
-          addTabMenuRef,
-          addTabNestedMenuRef,
-          addDocumentMenuRef,
-          openLayoutMenuRef,
-        ]}
-        onClose={close}
-      >
-        <div className="studio-menu" role="menu">
-          {APP_BAR_MENU_ITEMS.map((item) => {
-            if (item.id === 'file') {
-              return (
-                <button
-                  key={item.id}
-                  ref={fileMenuRef}
-                  type="button"
-                  role="menuitem"
-                  className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'file' ? 'studio-menu__item--submenu-open' : ''}`}
-                  aria-haspopup="menu"
-                  aria-expanded={activeSubmenu === 'file'}
-                  onMouseEnter={() => openSubmenu('file')}
-                  onMouseLeave={scheduleSubmenuClose}
-                  onFocus={() => openSubmenu('file')}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    openSubmenu('file');
-                  }}
-                >
-                  <span className="studio-menu__item-label">{item.label}</span>
-                  <span className="studio-menu__item-chevron" aria-hidden="true">
-                    <ChevronRightIcon />
-                  </span>
-                </button>
-              );
-            }
-
-            if (item.id === 'window') {
-              return (
-                <button
-                  key={item.id}
-                  ref={windowMenuRef}
-                  type="button"
-                  role="menuitem"
-                  className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'window' ? 'studio-menu__item--submenu-open' : ''}`}
-                  aria-haspopup="menu"
-                  aria-expanded={activeSubmenu === 'window'}
-                  onMouseEnter={() => openSubmenu('window')}
-                  onMouseLeave={scheduleSubmenuClose}
-                  onFocus={() => openSubmenu('window')}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    openSubmenu('window');
-                  }}
-                >
-                  <span className="studio-menu__item-label">{item.label}</span>
-                  <span className="studio-menu__item-chevron" aria-hidden="true">
-                    <ChevronRightIcon />
-                  </span>
-                </button>
-              );
-            }
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="menuitem"
-                className="studio-menu__item studio-menu__item--submenu"
-                aria-haspopup="menu"
-                onMouseEnter={() => {
-                  setActiveSubmenu(null);
-                  setWindowSubmenu(null);
-                }}
-                onClick={close}
-              >
-                <span className="studio-menu__item-label">{item.label}</span>
-                <span className="studio-menu__item-chevron" aria-hidden="true">
-                  <ChevronRightIcon />
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </TransientMenuPortal>
+      {variant === 'dropdown' ? children?.({ open, toggle, triggerRef }) : null}
+      {variant === 'flat' ? (
+        <nav className="app-bar__menu" aria-label="Application menu" role="menubar">
+          {APP_BAR_MENU_ITEMS.map(renderTopLevelMenuItem)}
+        </nav>
+      ) : (
+        <TransientMenuPortal
+          open={open}
+          anchorRef={triggerRef}
+          align="start"
+          portalRef={menuPortalRef}
+          ignoreRefs={[
+            fileSubmenuRef,
+            fileRecentMenuRef,
+            windowSubmenuRef,
+            addTabMenuRef,
+            addTabNestedMenuRef,
+            addDocumentMenuRef,
+            openLayoutMenuRef,
+          ]}
+          onClose={close}
+        >
+          <div className="studio-menu" role="menu">
+            {APP_BAR_MENU_ITEMS.map(renderTopLevelMenuItem)}
+          </div>
+        </TransientMenuPortal>
+      )}
 
       <FileSubmenu
-        open={open && activeSubmenu === 'file'}
+        open={menuActive && activeSubmenu === 'file'}
         anchorRef={fileMenuRef}
+        placement={variant === 'flat' ? 'below' : 'side'}
         portalRef={fileSubmenuRef}
         recentAnchorRef={fileRecentRef}
         recentPortalRef={fileRecentMenuRef}
@@ -378,8 +433,9 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
       />
 
       <TransientSubmenuPortal
-        open={open && activeSubmenu === 'window'}
+        open={menuActive && activeSubmenu === 'window'}
         anchorRef={windowMenuRef}
+        placement={variant === 'flat' ? 'below' : 'side'}
         offsetX={4}
         portalRef={windowSubmenuRef}
         onPointerEnter={clearSubmenuCloseTimer}
@@ -462,7 +518,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
       </TransientSubmenuPortal>
 
       <AddTabMenu
-        open={open && activeSubmenu === 'window' && windowSubmenu === 'add-tab'}
+        open={menuActive && activeSubmenu === 'window' && windowSubmenu === 'add-tab'}
         anchorRef={addTabRef}
         portalRef={addTabMenuRef}
         nestedPortalRef={addTabNestedMenuRef}
@@ -474,7 +530,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
       <AddDocumentMenu
         open={
           !studio2026 &&
-          open &&
+          menuActive &&
           activeSubmenu === 'window' &&
           windowSubmenu === 'add-document'
         }
@@ -485,7 +541,7 @@ export function AppBarMenu({ children }: AppBarMenuProps) {
       />
 
       <OpenLayoutMenu
-        open={open && activeSubmenu === 'window' && windowSubmenu === 'open-layout'}
+        open={menuActive && activeSubmenu === 'window' && windowSubmenu === 'open-layout'}
         anchorRef={openLayoutRef}
         portalRef={openLayoutMenuRef}
         layouts={savedLayouts}

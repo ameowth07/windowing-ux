@@ -1,8 +1,10 @@
+import { LegacyRibbon } from '@mdi/legacy-ribbon';
 import { useProjectName } from '../context/AppWindowContext';
 import { usePrimaryWindowIdOptional } from '../context/PrimaryWindowContext';
 import { INITIAL_WINDOW_ID } from '../context/PrimaryWindowsContext';
 import { useProjectTabBarEnabled } from '../context/ProjectTabBarContext';
 import { useScopeTabs } from '../context/ScopeTabContext';
+import { useStudio2026Enabled } from '../context/Studio2026Context';
 import type { ReactNode } from 'react';
 import { AppBarMenu } from './AppBarMenu';
 import { AppBarScopeTabs } from './AppBarScopeTabs';
@@ -23,13 +25,48 @@ interface AppBarProps {
 }
 
 export function AppBar({ onWindowDragStart, projectTabBar: projectTabBarOverride }: AppBarProps) {
+  const studio2026 = useStudio2026Enabled();
   const projectTabBar = useProjectTabBarEnabled(projectTabBarOverride);
+
+  if (studio2026) {
+    return <AppBarStudio2026 onWindowDragStart={onWindowDragStart} />;
+  }
 
   if (projectTabBar) {
     return <AppBarProjectTabBar onWindowDragStart={onWindowDragStart} />;
   }
 
   return <AppBarDefault onWindowDragStart={onWindowDragStart} />;
+}
+
+function AppBarStudio2026({ onWindowDragStart }: AppBarProps) {
+  const projectName = useProjectName();
+
+  return (
+    <div className="app-bar-studio2026">
+      <header
+        className={`app-bar app-bar--studio2026-chrome ${onWindowDragStart ? 'app-bar--draggable' : ''}`}
+        onMouseDown={onWindowDragStart}
+      >
+        <div className="app-bar__left app-bar__left--studio2026">
+          <div className="app-bar__brand app-bar__brand--studio2026">
+            <span className="app-bar__logo-mark" aria-hidden="true">
+              <RobloxMark />
+            </span>
+          </div>
+          <AppBarMenu variant="flat" />
+        </div>
+
+        <div className="app-bar__title">{projectName}</div>
+
+        <div className="app-bar__right">
+          <AppBarWindowControls />
+        </div>
+      </header>
+
+      <LegacyRibbon />
+    </div>
+  );
 }
 
 function AppBarDefault({ onWindowDragStart }: AppBarProps) {

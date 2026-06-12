@@ -13,6 +13,7 @@ type FileSubmenuPanel = 'recent' | null;
 interface FileSubmenuProps {
   open: boolean;
   anchorRef: RefObject<HTMLButtonElement | null>;
+  placement?: 'side' | 'below';
   portalRef?: RefObject<HTMLDivElement | null>;
   recentAnchorRef?: RefObject<HTMLButtonElement | null>;
   recentPortalRef?: RefObject<HTMLDivElement | null>;
@@ -24,6 +25,7 @@ interface FileSubmenuProps {
 export function FileSubmenu({
   open,
   anchorRef,
+  placement = 'side',
   portalRef,
   recentAnchorRef,
   recentPortalRef,
@@ -90,6 +92,7 @@ export function FileSubmenu({
       <TransientSubmenuPortal
         open={open}
         anchorRef={anchorRef}
+        placement={placement}
         offsetX={4}
         portalRef={portalRef}
         onPointerEnter={onPointerEnter}

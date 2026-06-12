@@ -1,0 +1,15 @@
+/**
+ * Design tokens for @mdi/legacy-ribbon.
+ * Import once in your app entry (e.g. main.tsx):
+ *
+ *   import '@mdi/legacy-ribbon/tokens.css'
+ */
+:root {
+  --surface-100: #191a1f;
+  --content-default: #d5d7dd;
+  --content-emphasis: #f7f7f8;
+  --content-muted: #bcbec8;
+  --overmedia-100: hsla(230, 11%, 11%, 0.92);
+  --shift-200: rgba(208, 217, 251, 0.08);
+  --shift-300: rgba(208, 217, 251, 0.12);
+}
