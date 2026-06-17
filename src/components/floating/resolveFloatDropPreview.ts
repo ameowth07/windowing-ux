@@ -8,7 +8,7 @@ import type {
   FloatingWindow,
   PanelId,
 } from '../../types/layout';
-import { canGroupWithTarget, getPanelIdsFromDrag } from '../../utils/panelGrouping';
+import { canTabGroupWithTarget, getPanelIdsFromDrag } from '../../utils/panelGrouping';
 import { isFloatingBodyHover, isTabInsertTarget } from '../layout/tabInsertUtils';
 
 export type FloatDragPreview =
@@ -92,7 +92,7 @@ export function resolveFloatDropPreview({
   const { panelIds, activeTabId } = getGroupFromDragData(dragData);
 
   const canMergeWithFloatingWindow = (floatingWindowId: string) =>
-    canGroupWithTarget(
+    canTabGroupWithTarget(
       getPanelIdsFromDrag(dragData),
       floatingWindows.find((window) => window.id === floatingWindowId)?.panels ??
         [],

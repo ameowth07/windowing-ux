@@ -32,16 +32,16 @@
 
 .floating-edge-zone--top {
   top: 0;
-  left: var(--shell-edge-zone-side-size);
-  right: var(--shell-edge-zone-side-size);
+  left: 0;
+  right: 0;
   height: var(--shell-edge-zone-end-size);
   z-index: 1;
 }
 
 .floating-edge-zone--bottom {
   bottom: 0;
-  left: var(--shell-edge-zone-side-size);
-  right: var(--shell-edge-zone-side-size);
+  left: 0;
+  right: 0;
   height: var(--shell-edge-zone-end-size);
   z-index: 1;
 }

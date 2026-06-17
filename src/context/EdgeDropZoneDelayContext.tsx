@@ -166,21 +166,11 @@ function getEdgeZoneInContainer(
     return 'right';
   }
 
-  if (
-    localY >= 0 &&
-    localY <= endBandHeight &&
-    localX >= side &&
-    localX <= rect.width - side
-  ) {
+  if (localY >= 0 && localY <= endBandHeight) {
     return 'top';
   }
 
-  if (
-    localY >= bottomBandTop &&
-    localY <= rect.height &&
-    localX >= side &&
-    localX <= rect.width - side
-  ) {
+  if (localY >= bottomBandTop && localY <= rect.height) {
     return 'bottom';
   }
 

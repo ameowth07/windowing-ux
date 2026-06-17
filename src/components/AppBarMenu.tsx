@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { APP_BAR_MENU_ITEMS } from '../data/studioMenuItems';
 import {
@@ -11,6 +11,7 @@ import { usePrimaryWindows } from '../context/PrimaryWindowsContext';
 import { useLayout } from '../context/LayoutContext';
 import { useSavedLayouts } from '../context/SavedLayoutsContext';
 import { getRecentProjectIdForMenuAction } from '../config/recentProjects';
+import { isViewportOpen, VIEWPORT_PANEL_ID } from '../config/studio2026';
 import { useScopeTabs } from '../context/ScopeTabContext';
 import { useStudio2026Enabled } from '../context/Studio2026Context';
 import { collectAllPanelIds } from '../model/layoutOperations';
@@ -41,7 +42,7 @@ interface AppBarMenuProps {
 
 export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) {
   const { createNewProject, openRecentProject } = useScopeTabs();
-  const { floatPanel, state, setLayoutState } = useLayout();
+  const { closeTab, dockedPanelIds, floatPanel, state, setLayoutState } = useLayout();
   const { getSize: getAuxiliaryWindowSize } = useAuxiliaryWindowSize();
   const studio2026 = useStudio2026Enabled();
   const { savedLayouts, saveLayout } = useSavedLayouts();
@@ -81,6 +82,16 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
     setWindowSubmenu(null);
   };
   const menuActive = variant === 'flat' || open;
+  const openPanelIds = useMemo(() => {
+    const ids = new Set(dockedPanelIds);
+    for (const window of state.floating) {
+      for (const panelId of window.panels) {
+        ids.add(panelId);
+      }
+    }
+    return ids;
+  }, [dockedPanelIds, state.floating]);
+  const viewportOpen = isViewportOpen(openPanelIds);
 
   const clearSubmenuCloseTimer = () => {
     if (submenuCloseTimerRef.current !== null) {
@@ -223,6 +234,15 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
     close();
   };
 
+  const handleViewportToggle = () => {
+    if (viewportOpen) {
+      closeTab(VIEWPORT_PANEL_ID);
+      return;
+    }
+
+    floatPanelAtDefaultPosition(VIEWPORT_PANEL_ID);
+  };
+
   const handleAddDocument = (basePanelId: PanelId) => {
     const existingPanelIds = collectAllPanelIds(state.root, state.floating);
     const instanceId = createDocumentPanelInstanceId(basePanelId, existingPanelIds);
@@ -266,6 +286,31 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [menuActive]);
+
+  useEffect(() => {
+    if (variant !== 'flat' || activeSubmenu === null) return;
+
+    const menuSurfaces = [
+      fileMenuRef,
+      windowMenuRef,
+      fileSubmenuRef,
+      fileRecentMenuRef,
+      windowSubmenuRef,
+      addTabMenuRef,
+      addTabNestedMenuRef,
+      addDocumentMenuRef,
+      openLayoutMenuRef,
+    ];
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (menuSurfaces.some((ref) => ref.current?.contains(target))) return;
+      close();
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown, true);
+    return () => window.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [variant, activeSubmenu, windowSubmenu]);
 
   useEffect(() => {
     return () => {
@@ -443,6 +488,24 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
         onPointerLeave={scheduleSubmenuClose}
       >
         <div className="studio-menu studio-menu--auto" role="menu">
+          {studio2026 ? (
+            <button
+              type="button"
+              role="menuitemcheckbox"
+              className={`studio-menu__item ${viewportOpen ? 'studio-menu__item--checked' : ''}`}
+              aria-checked={viewportOpen}
+              onMouseEnter={() => setWindowSubmenu(null)}
+              onClick={handleViewportToggle}
+            >
+              <span
+                className={`studio-menu__item-leading ${viewportOpen ? 'studio-menu__item-leading--checked' : ''}`}
+                aria-hidden="true"
+              >
+                {viewportOpen ? <CheckIcon /> : null}
+              </span>
+              <span className="studio-menu__item-label">Viewport</span>
+            </button>
+          ) : null}
           <button
             ref={addTabRef}
             type="button"
@@ -458,6 +521,7 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
               openWindowSubmenu('add-tab');
             }}
           >
+            <span className="studio-menu__item-leading" aria-hidden="true" />
             <span className="studio-menu__item-label">Add Tab</span>
             <span className="studio-menu__item-chevron" aria-hidden="true">
               <ChevronRightIcon />
@@ -479,6 +543,7 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
                 openWindowSubmenu('add-document');
               }}
             >
+              <span className="studio-menu__item-leading" aria-hidden="true" />
               <span className="studio-menu__item-label">Add New Document</span>
               <span className="studio-menu__item-chevron" aria-hidden="true">
                 <ChevronRightIcon />
@@ -493,6 +558,7 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
             onMouseEnter={() => setWindowSubmenu(null)}
             onClick={handleSaveLayoutClick}
           >
+            <span className="studio-menu__item-leading" aria-hidden="true" />
             <span className="studio-menu__item-label">Save Layout</span>
           </button>
           <button
@@ -510,6 +576,7 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
               openWindowSubmenu('open-layout');
             }}
           >
+            <span className="studio-menu__item-leading" aria-hidden="true" />
             <span className="studio-menu__item-label">Open Layout</span>
             <span className="studio-menu__item-chevron" aria-hidden="true">
               <ChevronRightIcon />
@@ -562,6 +629,21 @@ export function AppBarMenu({ variant = 'dropdown', children }: AppBarMenuProps) 
         onClose={() => setSaveProjectDialogOpen(false)}
       />
     </>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+      <path
+        d="M1.5 5 3.8 7.3 8.5 2.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

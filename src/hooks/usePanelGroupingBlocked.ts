@@ -1,9 +1,12 @@
 import { useDndContext } from '@dnd-kit/core';
 import { useEnforceDocumentRegionEnabled } from '../context/EnforceDocumentRegionContext';
 import type { DragData, PanelId } from '../types/layout';
-import { canGroupDragWithTarget } from '../utils/panelGrouping';
+import {
+  canSplitDockDragWithTarget,
+  canTabGroupDragWithTarget,
+} from '../utils/panelGrouping';
 
-export function usePanelGroupingBlocked(targetPanelIds: PanelId[]): boolean {
+export function useTabGroupBlocked(targetPanelIds: PanelId[]): boolean {
   const { active } = useDndContext();
   const enforce = useEnforceDocumentRegionEnabled();
 
@@ -11,9 +14,29 @@ export function usePanelGroupingBlocked(targetPanelIds: PanelId[]): boolean {
     return false;
   }
 
-  return !canGroupDragWithTarget(
+  return !canTabGroupDragWithTarget(
     active.data.current as DragData | null | undefined,
     targetPanelIds,
     enforce,
   );
+}
+
+export function useSplitDockBlocked(targetPanelIds: PanelId[]): boolean {
+  const { active } = useDndContext();
+  const enforce = useEnforceDocumentRegionEnabled();
+
+  if (!active) {
+    return false;
+  }
+
+  return !canSplitDockDragWithTarget(
+    active.data.current as DragData | null | undefined,
+    targetPanelIds,
+    enforce,
+  );
+}
+
+/** @deprecated Use useTabGroupBlocked or useSplitDockBlocked. */
+export function usePanelGroupingBlocked(targetPanelIds: PanelId[]): boolean {
+  return useTabGroupBlocked(targetPanelIds);
 }

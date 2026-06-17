@@ -4,6 +4,15 @@
   pointer-events: none;
 }
 
+.drag-drop-root--studio-2026 .panel-container__tab-bar,
+.drag-drop-root--studio-2026 .floating-window__tab-bar {
+  background: var(--bg-surface-100);
+}
+
+.drag-drop-root--studio-2026 .drag-overlay-tab {
+  background: var(--bg-surface-100);
+}
+
 .drag-drop-root > .resizable-app-window {
   pointer-events: auto;
 }

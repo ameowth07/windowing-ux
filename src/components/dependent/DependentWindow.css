@@ -44,18 +44,6 @@
   overflow: auto;
 }
 
-.dependent-window__dialog-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: auto;
-  background: var(--dialog-scrim);
-}
-
-.dependent-window--dialog-chrome-locked .dependent-window__footer {
-  pointer-events: none;
-}
-
 .dependent-window__footer {
   flex-shrink: 0;
   padding: 12px 20px;

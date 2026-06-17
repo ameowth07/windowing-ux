@@ -26,12 +26,14 @@ function AppShell({
   return (
     <div className="app-shell">
       <AppBar onWindowDragStart={onWindowDragStart} />
-      <PaneGutter orientation="horizontal" />
-      <div className="app-workspace-area">
-        <Workspace workspaceRef={workspaceRef} />
+      <div className="app-shell__dock-region">
+        <PaneGutter orientation="horizontal" shellEdgeDrop="top" />
+        <div className="app-workspace-area">
+          <Workspace workspaceRef={workspaceRef} />
+        </div>
+        <PaneGutter orientation="horizontal" shellEdgeDrop="bottom" />
         <ShellEdgeDropZones />
       </div>
-      <PaneGutter orientation="horizontal" />
       <Footer />
     </div>
   );

@@ -136,7 +136,6 @@ export function ResizableAppWindow({
 
   const startResize = useCallback(
     (edge: ResizeEdge, event: React.MouseEvent) => {
-      if (isDialogInteractionLocked) return;
       event.preventDefault();
       event.stopPropagation();
       resizeRef.current = {
@@ -146,7 +145,7 @@ export function ResizableAppWindow({
         orig: bounds,
       };
     },
-    [bounds, isDialogInteractionLocked],
+    [bounds],
   );
 
   useEffect(() => {

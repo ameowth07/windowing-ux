@@ -31,19 +31,19 @@
   z-index: 2;
 }
 
-/* Top/bottom hit targets: inset so they do not cover the side strips. */
+/* Top/bottom hit targets span full width so shell gutters are droppable. */
 .shell-edge-zone--top {
   top: 0;
-  left: var(--shell-edge-zone-side-size);
-  right: var(--shell-edge-zone-side-size);
+  left: 0;
+  right: 0;
   height: var(--shell-edge-zone-end-size);
   z-index: 1;
 }
 
 .shell-edge-zone--bottom {
   bottom: 0;
-  left: var(--shell-edge-zone-side-size);
-  right: var(--shell-edge-zone-side-size);
+  left: 0;
+  right: 0;
   height: var(--shell-edge-zone-end-size);
   z-index: 1;
 }

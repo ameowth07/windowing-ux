@@ -120,27 +120,8 @@ function leaf(id: string, label: string): StudioMenuLeafItem {
   return { id, label, panelId: id };
 }
 
-export function getAddTabMenuCategories(studio2026: boolean): StudioMenuCategory[] {
-  if (!studio2026) {
-    return STUDIO_MENU_CATEGORIES;
-  }
-
-  return STUDIO_MENU_CATEGORIES.map((category) => {
-    if (category.id !== 'general') {
-      return category;
-    }
-
-    if (category.items.some((item) => item.panelId === 'viewport')) {
-      return category;
-    }
-
-    return {
-      ...category,
-      items: [...category.items, leaf('viewport', 'Viewport')].sort((a, b) =>
-        a.label.localeCompare(b.label),
-      ),
-    };
-  });
+export function getAddTabMenuCategories(): StudioMenuCategory[] {
+  return STUDIO_MENU_CATEGORIES;
 }
 
 export interface StudioMenuItem {

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { getAddTabMenuCategories } from '../../data/studioMenuItems';
 import { isAddTabMenuItemOpen, resolveAddTabMenuPanelId } from '../../config/studio2026';
-import { useStudio2026Enabled } from '../../context/Studio2026Context';
 import { useLayout } from '../../context/LayoutContext';
 import type { PanelId } from '../../types/layout';
 import { TransientSubmenuPortal } from './TransientMenuPortal';
@@ -24,11 +23,7 @@ export function AddTabMenu({
   onAddPanel,
   onClose,
 }: AddTabMenuProps) {
-  const studio2026 = useStudio2026Enabled();
-  const menuCategories = useMemo(
-    () => getAddTabMenuCategories(studio2026),
-    [studio2026],
-  );
+  const menuCategories = useMemo(() => getAddTabMenuCategories(), []);
   const { dockedPanelIds, state } = useLayout();
   const openPanelIds = useMemo(() => {
     const ids = new Set(dockedPanelIds);
@@ -158,11 +153,7 @@ export function AddTabMenu({
         {activeCategory ? (
           <div className="studio-menu studio-menu--auto" role="menu">
             {activeCategory.items.map((item) => {
-              const isChecked = isAddTabMenuItemOpen(
-                item.panelId,
-                openPanelIds,
-                studio2026,
-              );
+              const isChecked = isAddTabMenuItemOpen(item.panelId, openPanelIds);
 
               return (
                 <button
@@ -174,7 +165,7 @@ export function AddTabMenu({
                   aria-disabled={isChecked}
                   onClick={() => {
                     if (isChecked) return;
-                    onAddPanel(resolveAddTabMenuPanelId(item.panelId, studio2026));
+                    onAddPanel(resolveAddTabMenuPanelId(item.panelId));
                     onClose();
                   }}
                 >

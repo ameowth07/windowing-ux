@@ -11,7 +11,7 @@ import type { DragFloatingWindowData, FloatingBodyHoverData, LayoutNode, PanelId
 import { useFloatingPanelDockingEnabled } from '../../context/FloatingPanelDockingContext';
 import { FloatingLayoutProvider } from '../../context/FloatingLayoutContext';
 import { LayoutRenderer } from '../layout/LayoutRenderer';
-import { usePanelGroupingBlocked } from '../../hooks/usePanelGroupingBlocked';
+import { useTabGroupBlocked } from '../../hooks/usePanelGroupingBlocked';
 import { isTabGroupDrag } from '../dnd/dragTypes';
 import { PanelContent } from '../panels/PanelContent';
 import { DraggableTab } from '../layout/DraggableTab';
@@ -71,7 +71,7 @@ export function FloatingWindow({
   const { isTabBarCollapsed, expandTabBar } = useCollapsedTabBar();
   const isCollapsed = isTabBarCollapsed(id);
   const isAnyDragActive = active != null;
-  const isDropBlocked = usePanelGroupingBlocked(panels);
+  const isTabGroupBlocked = useTabGroupBlocked(panels);
   const isDialogInteractionLocked = useDialogInteractionLocked();
   const { visiblePanelIds, overflowPanelIds } = useTabBarOverflow(
     tabBarRef,
@@ -122,7 +122,7 @@ export function FloatingWindow({
   const { setNodeRef: setBodyRef } = useDroppable({
     id: `floating-body-${id}`,
     data: bodyHoverData,
-    disabled: isDropBlocked || dragOverlay || useLayoutBody,
+    disabled: isTabGroupBlocked || dragOverlay || useLayoutBody,
   });
 
   const draggedPanelId = (active?.data.current as { panelId?: PanelId } | undefined)
@@ -148,7 +148,7 @@ export function FloatingWindow({
       className={[
         'floating-window',
         isMergeTarget ? 'floating-window--merge-target' : '',
-        isDropBlocked ? 'floating-window--drop-blocked' : '',
+        isTabGroupBlocked ? 'floating-window--drop-blocked' : '',
         isResizing ? 'floating-window--resizing' : '',
         isDialogInteractionLocked ? 'floating-window--dialog-chrome-locked' : '',
       ]
@@ -248,7 +248,7 @@ export function FloatingWindow({
               panelIds={panels}
               draggedPanelId={draggedPanelId}
               tabsContainerRef={tabsRef}
-              dropBlocked={isDropBlocked}
+              dropBlocked={isTabGroupBlocked}
             />
           </div>
           <TabBarOverflowMenu
@@ -294,7 +294,7 @@ export function FloatingWindow({
         </div>
       </div>
       <FloatingWindowResizeHandles
-        onResizeStart={dragOverlay || isDialogInteractionLocked ? undefined : startResize}
+        onResizeStart={dragOverlay ? undefined : startResize}
       />
       <DialogWindowScrim variant="auxiliary" />
     </div>

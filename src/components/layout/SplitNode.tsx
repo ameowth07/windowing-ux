@@ -69,6 +69,11 @@ export function SplitNode({ node }: SplitNodeProps) {
         ariaValueNow={Math.round(node.ratio * 100)}
         ariaValueMin={MIN_RATIO * 100}
         ariaValueMax={MAX_RATIO * 100}
+        gutterDrop={{
+          splitId: node.id,
+          secondNodeId: node.second.id,
+          orientation: isHorizontal ? 'vertical' : 'horizontal',
+        }}
       />
       <div className="split-node__pane" style={{ flex: 1 - node.ratio }}>
         <LayoutRenderer node={node.second} />

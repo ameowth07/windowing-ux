@@ -25,7 +25,8 @@ import { getFloatingPosition, resolveFloatingPlacement, useFloatingContainer } f
 import { useMonitorLayout } from '../context/MonitorLayoutContext';
 import { useEnforceDocumentRegionEnabled } from '../context/EnforceDocumentRegionContext';
 import {
-  canGroupDragWithTarget,
+  canTabGroupDragWithTarget,
+  canSplitDockDragWithTarget,
   getTargetPanelIdsForNode,
 } from '../utils/panelGrouping';
 import {
@@ -36,6 +37,7 @@ import {
   resolveFloatingWindowForTabGroupDrag,
 } from '../model/layoutOperations';
 import { useProjectTabBarEnabled } from '../context/ProjectTabBarContext';
+import { useStudio2026Enabled } from '../context/Studio2026Context';
 import { useScopeTabs } from '../context/ScopeTabContext';
 import { useLayout } from '../context/LayoutContext';
 import {
@@ -128,6 +130,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
     moveFloating,
   } = useLayout();
   const projectTabBar = useProjectTabBarEnabled();
+  const studio2026 = useStudio2026Enabled();
   const enforceDocumentRegion = useEnforceDocumentRegionEnabled();
   const { getActiveTabForWindow } = useScopeTabs();
   const activeTabId = getActiveTabForWindow(windowId);
@@ -157,6 +160,12 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
   const collisionDetection: CollisionDetection = (args) => {
     const pointerHits = pointerWithin(args);
     if (pointerHits.length > 0) {
+      const gutterHit = pointerHits.find((hit) => {
+        const id = String(hit.id);
+        return id.startsWith('gutter-drop-') || id.startsWith('shell-gutter-');
+      });
+      if (gutterHit) return [gutterHit];
+
       const edgeHits = pointerHits.filter((hit) => {
         const id = String(hit.id);
         return id.startsWith('shell-edge-') || id.startsWith('float-edge-');
@@ -376,13 +385,13 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         if (!floatingWindowMatchesScope(target, activeTabId, projectTabBar)) {
           return;
         }
-        if (!canGroupWithNode(dragData, overData.nodeId)) {
+        if (!canTabGroupWithNode(dragData, overData.nodeId)) {
           return;
         }
         mergeTabGroupIntoFloating(dragData.nodeId, overData.nodeId);
         return;
       }
-      if (!canGroupWithNode(dragData, overData.nodeId)) {
+      if (!canTabGroupWithNode(dragData, overData.nodeId)) {
         return;
       }
       dockTabGroupAtTabIndex(
@@ -404,7 +413,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       ) {
         return;
       }
-      if (!canGroupWithNode(dragData, overData.floatingWindowId)) {
+      if (!canTabGroupWithNode(dragData, overData.floatingWindowId)) {
         return;
       }
       mergeTabGroupIntoFloating(dragData.nodeId, overData.floatingWindowId);
@@ -418,7 +427,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       }
       if (
         dropData.nodeId !== '__workspace_root__' &&
-        !canGroupWithNode(dragData, dropData.nodeId)
+        !canSplitDockWithNode(dragData, dropData.nodeId)
       ) {
         return;
       }
@@ -490,7 +499,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         ) {
           return;
         }
-        if (!canGroupWithNode(dragData, overData.nodeId)) {
+        if (!canTabGroupWithNode(dragData, overData.nodeId)) {
           return;
         }
         mergeFloatingWindowIntoFloating(
@@ -501,7 +510,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         return;
       }
       if (!canDockFloatingToWorkspace(floatingWindowId)) return;
-      if (!canGroupWithNode(dragData, overData.nodeId)) {
+      if (!canTabGroupWithNode(dragData, overData.nodeId)) {
         return;
       }
       dockFloatingWindowAtTabIndex(
@@ -524,7 +533,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       ) {
         return;
       }
-      if (!canGroupWithNode(dragData, overData.floatingWindowId)) {
+      if (!canTabGroupWithNode(dragData, overData.floatingWindowId)) {
         return;
       }
       mergeFloatingWindowIntoFloating(
@@ -564,7 +573,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       if (!canDockFloatingToWorkspace(floatingWindowId)) return;
       if (
         dropData.nodeId !== '__workspace_root__' &&
-        !canGroupWithNode(dragData, dropData.nodeId)
+        !canSplitDockWithNode(dragData, dropData.nodeId)
       ) {
         return;
       }
@@ -615,11 +624,21 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
     return floatingWindowMatchesScope(window, activeTabId, projectTabBar);
   };
 
-  const canGroupWithNode = (
+  const canTabGroupWithNode = (
     dragData: DragPanelData | DragTabGroupData,
     nodeId: string,
   ) =>
-    canGroupDragWithTarget(
+    canTabGroupDragWithTarget(
+      dragData,
+      getTargetPanelIdsForNode(state.root, state.floating, nodeId),
+      enforceDocumentRegion,
+    );
+
+  const canSplitDockWithNode = (
+    dragData: DragPanelData | DragTabGroupData,
+    nodeId: string,
+  ) =>
+    canSplitDockDragWithTarget(
       dragData,
       getTargetPanelIdsForNode(state.root, state.floating, nodeId),
       enforceDocumentRegion,
@@ -643,7 +662,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         ) {
           return;
         }
-        if (!canGroupWithNode(dragData, overData.nodeId)) {
+        if (!canTabGroupWithNode(dragData, overData.nodeId)) {
           return;
         }
         mergeFloatingTab(
@@ -662,7 +681,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         ) {
           return;
         }
-        if (!canGroupWithNode(dragData, overData.nodeId)) {
+        if (!canTabGroupWithNode(dragData, overData.nodeId)) {
           return;
         }
         dockPanelAtTabIndex(
@@ -687,7 +706,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       ) {
         return;
       }
-      if (!canGroupWithNode(dragData, overData.floatingWindowId)) {
+      if (!canTabGroupWithNode(dragData, overData.floatingWindowId)) {
         return;
       }
       mergeFloatingTab(
@@ -712,7 +731,7 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
       const dropData = overData as DropTargetData;
       if (
         dropData.nodeId !== '__workspace_root__' &&
-        !canGroupWithNode(dragData, dropData.nodeId)
+        !canSplitDockWithNode(dragData, dropData.nodeId)
       ) {
         return;
       }
@@ -760,7 +779,16 @@ function DragDropRootInner({ children, workspaceRef }: DragDropRootProps) {
         onDragCancel={clearDragState}
       >
         <ShellEdgeZoneActivationTracker />
-        <div className="drag-drop-root">{children}</div>
+        <div
+          className={[
+            'drag-drop-root',
+            studio2026 ? 'drag-drop-root--studio-2026' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {children}
+        </div>
         <DragOverlay dropAnimation={null}>
           {isPanelDrag(activeDrag) && floatPreview?.kind !== 'window' ? (
             <div className="drag-overlay-tab">

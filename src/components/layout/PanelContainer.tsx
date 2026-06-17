@@ -5,7 +5,7 @@ import { useCollapsedTabBar } from '../../context/CollapsedTabBarContext';
 import { useFloatingLayoutWindowId } from '../../context/FloatingLayoutContext';
 import { useLayout } from '../../context/LayoutContext';
 import type { DragPanelData, LayoutNode, PanelHoverData, PanelId } from '../../types/layout';
-import { usePanelGroupingBlocked } from '../../hooks/usePanelGroupingBlocked';
+import { useTabGroupBlocked, useSplitDockBlocked } from '../../hooks/usePanelGroupingBlocked';
 import { isTabGroupDrag } from '../dnd/dragTypes';
 import { PanelContent } from '../panels/PanelContent';
 import { DraggableTab } from './DraggableTab';
@@ -41,7 +41,8 @@ export function PanelContainer({ node }: PanelContainerProps) {
   );
   const activePanelId =
     node.type === 'tabs' ? node.activeTabId : node.panelId;
-  const isDropBlocked = usePanelGroupingBlocked(panelIds);
+  const isTabGroupBlocked = useTabGroupBlocked(panelIds);
+  const isSplitDockBlocked = useSplitDockBlocked(panelIds);
 
   const bodyHoverData: PanelHoverData = {
     type: 'panel-body-hover',
@@ -50,7 +51,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
   const { setNodeRef: setBodyRef } = useDroppable({
     id: `panel-body-hover-${node.id}`,
     data: bodyHoverData,
-    disabled: isDropBlocked,
+    disabled: isTabGroupBlocked,
   });
 
   const isAnyDragActive = active != null;
@@ -99,7 +100,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
       className={[
         'panel-container',
         isCollapsed ? 'panel-container--tab-bar-collapsed' : '',
-        isDropBlocked ? 'panel-container--drop-blocked' : '',
+        isTabGroupBlocked ? 'panel-container--drop-blocked' : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -147,7 +148,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
             panelIds={panelIds}
             draggedPanelId={draggedPanelId}
             tabsContainerRef={tabsRef}
-            dropBlocked={isDropBlocked}
+            dropBlocked={isTabGroupBlocked}
           />
         </div>
         <TabBarOverflowMenu
@@ -169,7 +170,7 @@ export function PanelContainer({ node }: PanelContainerProps) {
       )}
       <div ref={setBodyRef} className="panel-container__body">
         <PanelContent panelId={activePanelId} />
-        <DropZones nodeId={node.id} panelIds={panelIds} scoped />
+        <DropZones nodeId={node.id} panelIds={panelIds} scoped dropBlocked={isSplitDockBlocked} />
       </div>
       {isCollapsed ? (
         <button

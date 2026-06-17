@@ -6,7 +6,6 @@ interface AuxiliaryWindowTitleBarProps {
   onClose: () => void;
   onTitleBarPointerDown?: PointerEventHandler<HTMLDivElement>;
   windowControls?: ReactNode;
-  chromeLocked?: boolean;
 }
 
 export function AuxiliaryWindowTitleBar({
@@ -14,14 +13,12 @@ export function AuxiliaryWindowTitleBar({
   onClose,
   onTitleBarPointerDown,
   windowControls,
-  chromeLocked = false,
 }: AuxiliaryWindowTitleBarProps) {
   return (
     <div
       className={[
         'aux-window-title-bar',
         onTitleBarPointerDown ? '' : 'aux-window-title-bar--static',
-        chromeLocked ? 'aux-window-title-bar--chrome-locked' : '',
       ]
         .filter(Boolean)
         .join(' ')}

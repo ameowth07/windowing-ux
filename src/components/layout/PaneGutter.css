@@ -1,4 +1,5 @@
 .pane-gutter {
+  position: relative;
   flex-shrink: 0;
   display: flex;
   gap: var(--pane-gutter-gap);
@@ -30,6 +31,10 @@
   z-index: 6;
 }
 
+.pane-gutter--dockable {
+  z-index: 30;
+}
+
 .pane-gutter--resizable.pane-gutter--vertical {
   cursor: col-resize;
 }
@@ -41,4 +46,70 @@
 .pane-gutter--resizable:hover .pane-gutter__line,
 .pane-gutter--active .pane-gutter__line {
   background: var(--resize-stroke);
+}
+
+.pane-gutter__drop-target {
+  position: absolute;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.pane-gutter__drop-target--hidden {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.pane-gutter--dockable.pane-gutter--vertical .pane-gutter__drop-target {
+  top: 0;
+  bottom: 0;
+  left: -12px;
+  right: -12px;
+}
+
+.pane-gutter--dockable.pane-gutter--horizontal .pane-gutter__drop-target {
+  left: 0;
+  right: 0;
+  top: -12px;
+  bottom: -12px;
+}
+
+.pane-gutter--shell-edge .pane-gutter__drop-target--shell-edge {
+  top: -10px;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+}
+
+.pane-gutter__drop-target::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  background: var(--drop-zone-stroke);
+}
+
+.pane-gutter--vertical .pane-gutter__drop-target::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--drop-zone-edge-size);
+  transform: translateX(-50%);
+}
+
+.pane-gutter--horizontal .pane-gutter__drop-target::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--drop-zone-edge-size);
+  transform: translateY(-50%);
+}
+
+.pane-gutter__drop-target--active::after,
+.pane-gutter__drop-target--debug::after {
+  opacity: 1;
+}
+
+.pane-gutter__drop-target--debug {
+  pointer-events: none;
 }

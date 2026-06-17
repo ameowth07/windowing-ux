@@ -1,7 +1,7 @@
 import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { useEdgeDropZoneDelay } from '../../context/EdgeDropZoneDelayContext';
 import { useShowDropzones } from '../../context/ShowDropzonesContext';
-import { usePanelGroupingBlocked } from '../../hooks/usePanelGroupingBlocked';
+import { useSplitDockBlocked } from '../../hooks/usePanelGroupingBlocked';
 import { isDockingDrag } from '../dnd/dragTypes';
 import type { DropTargetData, DropZone, PanelId } from '../../types/layout';
 import './FloatingEdgeDropZones.css';
@@ -26,7 +26,7 @@ export function FloatingEdgeDropZones({
 }: FloatingEdgeDropZonesProps) {
   const { active } = useDndContext();
   const { enabled: showDropzones } = useShowDropzones();
-  const isDropBlocked = usePanelGroupingBlocked(panelIds);
+  const isDropBlocked = useSplitDockBlocked(panelIds);
   const isDragging = isDockingDrag(active?.data.current);
 
   if (isDropBlocked || (!isDragging && !showDropzones)) {

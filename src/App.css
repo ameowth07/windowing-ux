@@ -8,6 +8,14 @@
   overflow: hidden;
 }
 
+.app-shell__dock-region {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .app-workspace-area {
   flex: 1;
   min-height: 0;

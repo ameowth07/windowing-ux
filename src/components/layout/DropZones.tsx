@@ -1,7 +1,7 @@
 import { useDndContext, useDroppable } from '@dnd-kit/core';
 import { PANEL_DROP_ZONES } from '../../config/dropZones';
 import { useShowDropzones } from '../../context/ShowDropzonesContext';
-import { usePanelGroupingBlocked } from '../../hooks/usePanelGroupingBlocked';
+import { useSplitDockBlocked } from '../../hooks/usePanelGroupingBlocked';
 import { isPanelDrag, isTabGroupDrag } from '../dnd/dragTypes';
 import type { DropTargetData, DropZone, PanelHoverData, PanelId, TabInsertTargetData } from '../../types/layout';
 import './DropZones.css';
@@ -11,6 +11,7 @@ interface DropZonesProps {
   panelIds?: PanelId[];
   /** When true, zones only show while the drag is over this panel body. */
   scoped?: boolean;
+  dropBlocked?: boolean;
 }
 
 function isDragOverPanelBody(
@@ -32,10 +33,16 @@ function isDragOverPanelBody(
   return false;
 }
 
-export function DropZones({ nodeId, panelIds = [], scoped }: DropZonesProps) {
+export function DropZones({
+  nodeId,
+  panelIds = [],
+  scoped,
+  dropBlocked: dropBlockedProp,
+}: DropZonesProps) {
   const { active, over } = useDndContext();
   const { enabled: showDropzones } = useShowDropzones();
-  const isDropBlocked = usePanelGroupingBlocked(panelIds);
+  const splitDockBlocked = useSplitDockBlocked(panelIds);
+  const isDropBlocked = dropBlockedProp ?? splitDockBlocked;
   const isDraggingPanel = isPanelDrag(active?.data.current);
   const isDraggingTabGroup = isTabGroupDrag(active?.data.current);
   const isDragging = isDraggingPanel || isDraggingTabGroup;

@@ -53,6 +53,8 @@ export function PanelTabBarMenu({
     enforceDocumentRegion && panelGroupType !== 'auxiliary';
   const addDocumentDisabled =
     enforceDocumentRegion && panelGroupType !== 'document';
+  const showAddTab = !studio2026 || panelGroupType !== 'document';
+  const showAddDocument = !studio2026 || panelGroupType === 'document';
   const [openSource, setOpenSource] = useState<'button' | 'context' | null>(
     null,
   );
@@ -230,7 +232,7 @@ export function PanelTabBarMenu({
             <span className="studio-menu__item-label">Collapse Tab</span>
           </button>
           <div className="studio-menu__divider" role="separator" />
-          {!studio2026 ? (
+          {showAddTab ? (
             <button
               ref={addTabRef}
               type="button"
@@ -254,32 +256,34 @@ export function PanelTabBarMenu({
               </span>
             </button>
           ) : null}
-          <button
-            ref={addDocumentRef}
-            type="button"
-            role="menuitem"
-            className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
-            aria-haspopup="menu"
-            aria-expanded={activeSubmenu === 'add-document'}
-            aria-disabled={addDocumentDisabled}
-            disabled={addDocumentDisabled}
-            onMouseEnter={() => openSubmenu('add-document')}
-            onMouseLeave={scheduleSubmenuClose}
-            onFocus={() => openSubmenu('add-document')}
-            onClick={(event) => {
-              event.stopPropagation();
-              openSubmenu('add-document');
-            }}
-          >
-            <span className="studio-menu__item-label">Add New Document</span>
-            <span className="studio-menu__item-chevron" aria-hidden="true">
-              <ChevronRightIcon />
-            </span>
-          </button>
+          {showAddDocument ? (
+            <button
+              ref={addDocumentRef}
+              type="button"
+              role="menuitem"
+              className={`studio-menu__item studio-menu__item--submenu ${activeSubmenu === 'add-document' ? 'studio-menu__item--submenu-open' : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={activeSubmenu === 'add-document'}
+              aria-disabled={addDocumentDisabled}
+              disabled={addDocumentDisabled}
+              onMouseEnter={() => openSubmenu('add-document')}
+              onMouseLeave={scheduleSubmenuClose}
+              onFocus={() => openSubmenu('add-document')}
+              onClick={(event) => {
+                event.stopPropagation();
+                openSubmenu('add-document');
+              }}
+            >
+              <span className="studio-menu__item-label">Add New Document</span>
+              <span className="studio-menu__item-chevron" aria-hidden="true">
+                <ChevronRightIcon />
+              </span>
+            </button>
+          ) : null}
         </div>
       </TransientMenuPortal>
 
-      {!studio2026 ? (
+      {showAddTab ? (
         <AddTabMenu
           open={open && activeSubmenu === 'add-tab' && !addTabDisabled}
           anchorRef={addTabRef}
@@ -290,14 +294,16 @@ export function PanelTabBarMenu({
         />
       ) : null}
 
-      <AddDocumentMenu
-        open={open && activeSubmenu === 'add-document' && !addDocumentDisabled}
-        anchorRef={addDocumentRef}
-        portalRef={addDocumentMenuRef}
-        items={studio2026 ? STUDIO_2026_SCRIPT_DOCUMENT_MENU_ITEMS : undefined}
-        onAddPanel={handleAddDocument}
-        onClose={closeMenu}
-      />
+      {showAddDocument ? (
+        <AddDocumentMenu
+          open={open && activeSubmenu === 'add-document' && !addDocumentDisabled}
+          anchorRef={addDocumentRef}
+          portalRef={addDocumentMenuRef}
+          items={studio2026 ? STUDIO_2026_SCRIPT_DOCUMENT_MENU_ITEMS : undefined}
+          onAddPanel={handleAddDocument}
+          onClose={closeMenu}
+        />
+      ) : null}
     </div>
   );
 }

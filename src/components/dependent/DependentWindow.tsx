@@ -6,7 +6,7 @@ import { usePrimaryWindowIdOptional } from '../../context/PrimaryWindowContext';
 import { useProjectName } from '../../context/AppWindowContext';
 import { usePrimaryWindows } from '../../context/PrimaryWindowsContext';
 import { useStudio2026Enabled } from '../../context/Studio2026Context';
-import { useDialogInteractionLocked } from '../../context/DialogModalContext';
+import { useRegisterBlockingDialog } from '../../context/DialogModalContext';
 import { getWindowContainerElement } from '../../utils/monitorSpace';
 import { AuxiliaryWindowTitleBar } from './AuxiliaryWindowTitleBar';
 import { DependentWindowResizeHandles } from './DependentWindowResizeHandles';
@@ -45,7 +45,6 @@ export function DependentWindow({
   const windowId = usePrimaryWindowIdOptional();
   const placeName = useProjectName();
   const studio2026 = useStudio2026Enabled();
-  const isDialogInteractionLocked = useDialogInteractionLocked();
   const displayTitle = studio2026 ? placeName : title;
   const { getWindow } = usePrimaryWindows();
   const { monitorCount } = useMonitorLayout();
@@ -96,6 +95,8 @@ export function DependentWindow({
       enabled: open,
     });
 
+  useRegisterBlockingDialog(open);
+
   useEffect(() => {
     if (!open) return;
 
@@ -127,7 +128,6 @@ export function DependentWindow({
         className={[
           'dependent-window',
           isResizing ? 'dependent-window--resizing' : '',
-          isDialogInteractionLocked ? 'dependent-window--dialog-chrome-locked' : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -144,18 +144,10 @@ export function DependentWindow({
           title={displayTitle}
           onClose={onClose}
           onTitleBarPointerDown={onTitleBarPointerDown}
-          chromeLocked={isDialogInteractionLocked}
         />
-        <div className="dependent-window__body">
-          {children}
-          {isDialogInteractionLocked ? (
-            <div className="dependent-window__dialog-scrim" aria-hidden="true" />
-          ) : null}
-        </div>
+        <div className="dependent-window__body">{children}</div>
         {footer ? <div className="dependent-window__footer">{footer}</div> : null}
-        <DependentWindowResizeHandles
-          onResizeStart={isDialogInteractionLocked ? undefined : startResize}
-        />
+        <DependentWindowResizeHandles onResizeStart={startResize} />
       </div>
     </div>,
     portalRoot,

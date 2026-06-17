@@ -56,7 +56,14 @@ export function getPanelIdsFromDrag(dragData: unknown): PanelId[] {
   return [];
 }
 
-export function canGroupWithTarget(
+function draggedPanelsHaveUniformType(draggedPanelIds: PanelId[]): boolean {
+  if (draggedPanelIds.length === 0) return true;
+  const draggedType = getPanelType(draggedPanelIds[0]);
+  return draggedPanelIds.every((id) => getPanelType(id) === draggedType);
+}
+
+/** Tab bar merge / tab insert — document and auxiliary cannot share a tab group when enforced. */
+export function canTabGroupWithTarget(
   draggedPanelIds: PanelId[],
   targetPanelIds: PanelId[],
   enforce: boolean,
@@ -65,10 +72,11 @@ export function canGroupWithTarget(
     return true;
   }
 
-  const draggedType = getPanelType(draggedPanelIds[0]);
-  if (!draggedPanelIds.every((id) => getPanelType(id) === draggedType)) {
+  if (!draggedPanelsHaveUniformType(draggedPanelIds)) {
     return false;
   }
+
+  const draggedType = getPanelType(draggedPanelIds[0]);
 
   if (targetPanelIds.length === 0) {
     return true;
@@ -82,15 +90,55 @@ export function canGroupWithTarget(
   return draggedType === targetType;
 }
 
-export function canGroupDragWithTarget(
+/** Edge / gutter split docking — cross-type splits are allowed even when document region is enforced. */
+export function canSplitDockWithTarget(
+  draggedPanelIds: PanelId[],
+  _targetPanelIds: PanelId[],
+  _enforce: boolean,
+): boolean {
+  return draggedPanelsHaveUniformType(draggedPanelIds);
+}
+
+export function canTabGroupDragWithTarget(
   dragData: DragData | null | undefined,
   targetPanelIds: PanelId[],
   enforce: boolean,
 ): boolean {
   if (!dragData) return true;
-  return canGroupWithTarget(
+  return canTabGroupWithTarget(
     getPanelIdsFromDrag(dragData),
     targetPanelIds,
     enforce,
   );
+}
+
+export function canSplitDockDragWithTarget(
+  dragData: DragData | null | undefined,
+  targetPanelIds: PanelId[],
+  enforce: boolean,
+): boolean {
+  if (!dragData) return true;
+  return canSplitDockWithTarget(
+    getPanelIdsFromDrag(dragData),
+    targetPanelIds,
+    enforce,
+  );
+}
+
+/** @deprecated Use canTabGroupWithTarget for tab merges or canSplitDockWithTarget for edge/gutter docks. */
+export function canGroupWithTarget(
+  draggedPanelIds: PanelId[],
+  targetPanelIds: PanelId[],
+  enforce: boolean,
+): boolean {
+  return canTabGroupWithTarget(draggedPanelIds, targetPanelIds, enforce);
+}
+
+/** @deprecated Use canTabGroupDragWithTarget or canSplitDockDragWithTarget. */
+export function canGroupDragWithTarget(
+  dragData: DragData | null | undefined,
+  targetPanelIds: PanelId[],
+  enforce: boolean,
+): boolean {
+  return canTabGroupDragWithTarget(dragData, targetPanelIds, enforce);
 }
